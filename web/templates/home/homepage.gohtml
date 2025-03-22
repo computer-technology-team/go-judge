@@ -10,12 +10,18 @@
 
 {{ define "content" }}
 <section class="hero">
-    <h1>Welcome to Go-Judge</h1>
-    <p>
-        A modern, high-performance code execution and judging system built with Go.
-        Perfect for programming competitions, educational platforms, and technical interviews.
-    </p>
-    <a href="/problems" class="btn">Start Solving</a>
+    <div class="hero-content">
+        <h1>Welcome to Go-Judge</h1>
+        <p>
+            A modern, high-performance code execution and judging system built with Go.
+            Perfect for programming competitions, educational platforms, and technical interviews.
+        </p>
+        <a href="/problems" class="btn">Start Solving</a>
+    </div>
+    <div class="hero-image">
+        <img src="/static/images/gotham.png" alt="Gopher as Batman" class="batgopher">
+        <p class="batgoi-text">به من میگن بتگوی (They call me Batgoi)</p>
+    </div>
 </section>
 
 <section class="features">
@@ -26,9 +32,9 @@
         </p>
     </div>
     <div class="feature-card">
-        <h3>Multiple Languages</h3>
+        <h3>Go Specialization</h3>
         <p>
-            Support for a wide range of programming languages including Go, Python, Java, C++, JavaScript, and more.
+            Focused on Go programming language, with specialized testing and evaluation tailored for Gophers.
         </p>
     </div>
     <div class="feature-card">
