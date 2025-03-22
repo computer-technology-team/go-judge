@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/local-build.Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE__HOST=postgres
+      - DATABASE__PORT=5432
+      - DATABASE__USERNAME=gojudge
+      - DATABASE__PASSWORD=complex-password
+      - DATABASE__NAME=gojudge
+    restart: unless-stopped
+    networks:
+      - gojudge-network
+  postgres:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=gojudge
+      - POSTGRES_PASSWORD=complex-password
+      - POSTGRES_DB=gojudge
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - gojudge-network
+networks:
+  gojudge-network:
+    driver: bridge
+volumes:
+  postgres-data:
+    driver: local

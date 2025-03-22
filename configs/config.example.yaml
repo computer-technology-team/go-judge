@@ -1,0 +1,15 @@
+server:
+  port: 8080
+  host: "0.0.0.0"
+database:
+  host: "localhost"
+  port: 5432
+  username: "postgres"
+  password: "postgres"
+  name: "gojudge"
+  sslmode: "disable"
+  max_conns: 10
+  min_conns: 2
+  max_conn_lifetime: "1h"
+  max_conn_idle_time: "30m"
+  conn_timeout: "5s"

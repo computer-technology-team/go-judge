@@ -1,0 +1,15 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "../internal/storage/queries"
+    schema: "../internal/storage/migrations"
+    gen:
+      go:
+        package: "storage"
+        out: "../internal/storage/"
+        emit_interface: true
+        emit_json_tags: true
+        emit_db_tags: true
+        emit_methods_with_db_argument: true
+        query_parameter_limit: 2
+        sql_package: "pgx/v5"
