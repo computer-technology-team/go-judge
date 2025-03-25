@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
+	Server         ServerConfig         `mapstructure:"server"`
+	Database       DatabaseConfig       `mapstructure:"database"`
+	Authentication AuthenticationConfig `mapstructure:"authentication"`
 }
 
 type ServerConfig struct {
@@ -38,6 +39,12 @@ func (c *DatabaseConfig) DSN() string {
 		c.Username, c.Password, c.Host, c.Port, c.Name, c.SSLMode)
 }
 
+type AuthenticationConfig struct {
+	Keys        map[string]string `mapstructure:"keys"`
+	ActiveKeyID string            `mapstructure:"active_key_id"`
+	TokenExpiry time.Duration     `mapstructure:"token_expiry"`
+}
+
 func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
@@ -57,6 +64,14 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("database.max_conn_lifetime", 1*time.Hour)
 	v.SetDefault("database.max_conn_idle_time", 30*time.Minute)
 	v.SetDefault("database.conn_timeout", 5*time.Second)
+
+	// Authentication defaults
+	v.SetDefault("authentication.token_expiry", 24*time.Hour)
+	// Default key is base64 encoded "default-secret-key-change-me-in-production"
+	v.SetDefault("authentication.keys", map[string]string{
+		"default": "ZGVmYXVsdC1zZWNyZXQta2V5LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9u",
+	})
+	v.SetDefault("authentication.active_key_id", "default")
 
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")

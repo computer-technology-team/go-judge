@@ -25,3 +25,8 @@ go.work.sum
 .env
 
 config.yaml
+
+# Binary in the root directory
+/go-judge
+
+

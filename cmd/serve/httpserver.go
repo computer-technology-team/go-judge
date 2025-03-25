@@ -60,7 +60,7 @@ func StartServer(cfg config.ServerConfig) error {
 	// API routes
 	router.Route("/", func(r chi.Router) {
 		// Auth routes
-		r.Route("/auth", auth.NewRoutes(auth.NewHandler()))
+		r.Route("/auth", auth.NewRoutes(auth.NewServicer()))
 
 		// Problem routes
 		r.Route("/problems", problems.NewRoutes(problems.NewHandler()))
