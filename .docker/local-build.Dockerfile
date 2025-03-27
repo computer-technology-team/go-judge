@@ -1,7 +1,14 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23 AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git gcc musl-dev
+# Update apt keys and install build dependencies
+RUN apt-get update && apt-get install -y \
+    gnupg \
+    ca-certificates \
+    && apt-key update \
+    && apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -18,11 +25,17 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-judge .
 
-# Create a minimal runtime image
-FROM alpine:3.20
+# Create a runtime image
+FROM ubuntu:22.04
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apt-get update && apt-get install -y \
+    gnupg \
+    ca-certificates \
+    && apt-key update \
+    && apt-get update && apt-get install -y \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -37,7 +50,7 @@ RUN chmod +x docker-entrypoint.sh
 COPY ./configs/config.yaml /app/config.yaml
 
 # Create a non-root user to run the application
-RUN adduser -D -g '' appuser && chown -R appuser:appuser /app
+RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose the application port
