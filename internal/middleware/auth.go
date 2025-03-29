@@ -36,12 +36,15 @@ func NewAuthMiddleWare(authenticator auth.Authenticator, pool *pgxpool.Pool, que
 				slog.ErrorContext(ctx, "invalid user id in valid token",
 					slog.String("token", authToken.Value),
 					slog.String("claims.user_id", claims.UserID))
+				http.Error(w, "invalid token payload", http.StatusInternalServerError)
+				return
 			}
 
 			user, err := querier.GetUser(ctx, pool, pgtype.UUID{Valid: true, Bytes: userUUID})
 			if err != nil {
 				slog.ErrorContext(ctx, "could not get user from database",
 					slog.String("claims.user_id", claims.UserID), "userUUID", userUUID)
+				http.Error(w, "invalid token payload", http.StatusInternalServerError)
 			}
 
 			ctx = context.WithValue(r.Context(), internalcontext.UserContextKey, &user)
