@@ -13,6 +13,12 @@ func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "go-judge",
 		Short: "Run and Manage Go Judge",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			logHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+				Level: slog.LevelInfo,
+			})
+			slog.SetDefault(slog.New(logHandler))
+		},
 	}
 
 	cmd.PersistentFlags().String(configFileFlag, "", "config file name")
@@ -27,7 +33,11 @@ func RegisterCommandRecursive(parent *cobra.Command) {
 
 	migrateCmd := NewMigrateCmd()
 
-	parent.AddCommand(serveCmd, migrateCmd)
+	generateTokenCmd := NewGenerateTokenCmd()
+
+	createAdminCmd := NewCreateAdminCmd()
+
+	parent.AddCommand(serveCmd, migrateCmd, createAdminCmd, generateTokenCmd)
 }
 
 func Execute() {

@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
+	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

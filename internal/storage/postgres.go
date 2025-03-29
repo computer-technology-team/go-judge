@@ -10,7 +10,7 @@ import (
 )
 
 // NewPgxPool creates a new pgxpool.Pool using the provided configuration
-func NewPgxPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
+func NewPgxPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
 		return nil, err

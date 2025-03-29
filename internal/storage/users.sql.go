@@ -12,13 +12,37 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, password_hash, superuser
-FROM users
-WHERE id = $1
+SELECT
+	id, username, password_hash, superuser
+FROM
+	users
+WHERE
+	id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error) {
 	row := db.QueryRow(ctx, getUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Superuser,
+	)
+	return i, err
+}
+
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT
+	id, username, password_hash, superuser
+FROM
+	users
+WHERE
+	username = $1
+`
+
+func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error) {
+	row := db.QueryRow(ctx, getUserByUsername, username)
 	var i User
 	err := row.Scan(
 		&i.ID,

@@ -1,0 +1,117 @@
+{{ define "profilepage" }}
+{{ template "base" . }}
+{{ end }}
+{{ define "title" }}Profile - {{ .Data.Username }}{{ end }}
+
+{{ define "content" }}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>User Profile</h1>
+    </div>
+    
+    <div class="profile-card">
+        <div class="profile-info">
+            <h2>{{ .Data.Username }}</h2>
+            
+            {{ if .User.Superuser }}
+                <div class="admin-controls">
+                    <h3>Admin Controls</h3>
+                    <div class="superuser-toggle">
+                        <p>Superuser Status: 
+                            <span class="{{ if .Data.Superuser }}status-enabled{{ else }}status-disabled{{ end }}">
+                                {{ if .Data.Superuser }}Enabled{{ else }}Disabled{{ end }}
+                            </span>
+                        </p>
+                        <form action="/profiles/{{ .Data.Username }}/toggle-superuser" method="POST">
+                            <button type="submit" class="btn btn-admin">
+                                {{ if .Data.Superuser }}
+                                    <span class="status-icon">⊖</span> Revoke Superuser Status
+                                {{ else }}
+                                    <span class="status-icon">⊕</span> Grant Superuser Status
+                                {{ end }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {{ end }}
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .profile-header {
+        margin-bottom: 2rem;
+    }
+    
+    .profile-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .profile-info h2 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .admin-controls {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .admin-controls h3 {
+        color: var(--text-color);
+        margin-bottom: 1rem;
+    }
+    
+    .superuser-toggle {
+        background-color: #f8fafc;
+        padding: 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .status-icon {
+        font-size: 1.1em;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+    }
+    
+    .status-enabled {
+        color: var(--success-color);
+        font-weight: bold;
+    }
+    
+    .status-disabled {
+        color: var(--error-color);
+        font-weight: bold;
+    }
+    
+    .btn-admin {
+        background-color: #f3f4f6;
+        color: #374151;
+        border: 2px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        margin-top: 0.75rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .btn-admin:hover {
+        background-color: #e5e7eb;
+        border-color: #9ca3af;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{{ end }}
