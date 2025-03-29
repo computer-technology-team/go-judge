@@ -9,5 +9,8 @@ import (
 )
 
 type User struct {
-	ID pgtype.UUID `db:"id" json:"id"`
+	ID           pgtype.UUID `db:"id" json:"id"`
+	Username     string      `db:"username" json:"username"`
+	PasswordHash string      `db:"password_hash" json:"password_hash"`
+	Superuser    bool        `db:"superuser" json:"superuser"`
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type Querier interface {
-	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (pgtype.UUID, error)
+	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)
