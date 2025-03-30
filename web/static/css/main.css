@@ -67,7 +67,6 @@ nav a:hover {
   color: var(--primary-color);
 }
 
-/* Auth button styles */
 nav a[href="/signup"],
 nav a[href="/login"] {
   background-color: var(--primary-color);
@@ -94,73 +93,15 @@ nav a[href="/login"]:hover {
 
 nav a[href="/signup"]:hover {
   background-color: #3b82f6;
-  /* Slightly lighter primary */
 }
 
 nav a[href="/login"]:hover {
   background-color: #2563eb;
-  /* Slightly lighter secondary */
 }
 
-/* Main content styles */
 main {
   padding: 2rem 0;
   min-height: calc(100vh - 185px);
-}
-
-/* Hero section */
-.hero {
-  text-align: center;
-  padding: 3rem 0;
-  background-color: white;
-  margin-bottom: 30px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.hero-content {
-  flex: 1;
-  min-width: 300px;
-  text-align: left;
-  padding: 0 20px;
-}
-
-.hero-image {
-  flex: 1;
-  min-width: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.batgopher {
-  max-width: 250px;
-  height: auto;
-  margin-bottom: 15px;
-}
-
-.batgoi-text {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: var(--text-color);
-  text-align: center;
-}
-
-.hero h1 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  color: var(--primary-color);
-}
-
-.hero p {
-  font-size: 1.2rem;
-  max-width: 800px;
-  margin: 0 auto 2rem;
-  color: var(--text-color);
 }
 
 /* Button styles */
@@ -178,27 +119,6 @@ main {
 
 .btn:hover {
   background-color: var(--secondary-color);
-}
-
-/* Features section */
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin: 3rem 0;
-}
-
-.feature-card {
-  background-color: white;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.feature-card h3 {
-  font-size: 1.25rem;
-  margin-bottom: 0.75rem;
-  color: var(--primary-color);
 }
 
 /* Footer styles */
@@ -246,22 +166,5 @@ footer {
   nav ul {
     flex-wrap: wrap;
     justify-content: center;
-  }
-
-  .hero {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .hero-content {
-    text-align: center;
-  }
-
-  .hero h1 {
-    font-size: 2rem;
-  }
-
-  .hero p {
-    font-size: 1rem;
   }
 }
