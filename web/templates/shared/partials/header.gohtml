@@ -8,6 +8,13 @@
                 <li><a href="/problems">Problems</a></li>
                 <li><a href="/submissions">Submissions</a></li>
                 <li><a href="/about">About</a></li>
+                {{ if not .User }}
+                <li><a href="/signup">Sign Up</a></li>
+                <li><a href="/login">Login</a></li>
+                {{ else }}
+                <li><a href="/profiles/{{ .User.Username }}">Profile</a></li>
+                <li><a href="/logout">Logout</a></li>
+                {{ end }}
             </ul>
         </nav>
     </div>

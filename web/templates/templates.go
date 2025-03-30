@@ -9,13 +9,19 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+
+	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
+	"github.com/computer-technology-team/go-judge/internal/storage"
 )
 
 type PackageName string
 
-const Home PackageName = "home"
+const (
+	Home PackageName = "home"
+	Profiles PackageName = "profiles"
+)
 
-//go:embed shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml
+//go:embed shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml
 var templateFS embed.FS
 
 // Templates holds all parsed templates
@@ -25,6 +31,7 @@ type Templates struct {
 
 type TemplateData struct {
 	Data any
+	User *storage.User
 }
 
 // New creates a new Templates instance with all templates parsed
@@ -53,7 +60,11 @@ func GetTemplates(pkg PackageName) (*Templates, error) {
 	sharedTemplates = append(sharedTemplates, sharedLayouts...)
 	sharedTemplates = append(sharedTemplates, sharedPartials...)
 
-	// Parse each page template
+	// First, parse all package templates together with shared templates
+	// This allows templates within the same package to reference each other
+	allTemplates := append(sharedTemplates, pkgTemplates...)
+
+	// Parse each page template, but include all package templates in each one
 	for _, page := range pkgTemplates {
 		name := filepath.Base(page)
 		name = name[0 : len(name)-len(filepath.Ext(name))]
@@ -61,8 +72,7 @@ func GetTemplates(pkg PackageName) (*Templates, error) {
 		// Create a template with the base layout, partials, and all other templates
 		tmpl := template.New(name)
 
-		// Parse all shared templates and the page template
-		allTemplates := append(sharedTemplates, page)
+		// Parse all shared templates and ALL package templates
 		tmpl, err = tmpl.ParseFS(templateFS, allTemplates...)
 		if err != nil {
 			return nil, err
@@ -80,5 +90,11 @@ func (t *Templates) Render(ctx context.Context, name string, wr io.Writer, data 
 		return errors.New("could not read template")
 	}
 
-	return tmpl.Execute(wr, TemplateData{Data: data})
+	templateData := TemplateData{Data: data}
+
+	if user, ok := internalcontext.GetUserFromContext(ctx); ok {
+		templateData.User = user
+	}
+
+	return tmpl.ExecuteTemplate(wr, name, templateData)
 }

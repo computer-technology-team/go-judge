@@ -24,7 +24,7 @@ func NewServeCmd() *cobra.Command {
 				return fmt.Errorf("could not load config")
 			}
 
-			return serve.StartServer(cfg.Server)
+			return serve.StartServer(cmd.Context(), *cfg)
 		},
 	}
 

@@ -1,0 +1,44 @@
+{{ define "profilepage" }}
+{{ template "base" . }}
+{{ end }}
+{{ define "title" }}Profile - {{ .Data.Username }}{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/profilepage.css">
+{{ end }}
+
+{{ define "content" }}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>User Profile</h1>
+    </div>
+    
+    <div class="profile-card">
+        <div class="profile-info">
+            <h2>{{ .Data.Username }}</h2>
+            
+            {{ if .User.Superuser }}
+                <div class="admin-controls">
+                    <h3>Admin Controls</h3>
+                    <div class="superuser-toggle">
+                        <p>Superuser Status: 
+                            <span class="{{ if .Data.Superuser }}status-enabled{{ else }}status-disabled{{ end }}">
+                                {{ if .Data.Superuser }}Enabled{{ else }}Disabled{{ end }}
+                            </span>
+                        </p>
+                        <form action="/profiles/{{ .Data.Username }}/toggle-superuser" method="POST">
+                            <button type="submit" class="btn btn-admin">
+                                {{ if .Data.Superuser }}
+                                    <span class="status-icon">⊖</span> Revoke Superuser Status
+                                {{ else }}
+                                    <span class="status-icon">⊕</span> Grant Superuser Status
+                                {{ end }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {{ end }}
+        </div>
+    </div>
+</div>
+{{ end }}
