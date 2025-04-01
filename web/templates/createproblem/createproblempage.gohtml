@@ -1,0 +1,97 @@
+{{ define "createproblempage" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "title" }}Create Problem{{ end }}
+
+{{ define "content" }}
+<section class="intro">
+    <div class="intro-content">
+        <h1>Create a New Problem</h1>
+        <p>
+            Use the form below to submit a new problem to Go-Judge. Please ensure all fields are filled out correctly.
+        </p>
+    </div>
+</section>
+
+<section class="problem-form">
+    <form id="problem-form" action="/problems" method="post">
+        <div class="form-group">
+            <label for="title">Problem Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Problem Description</label>
+            <textarea id="description" name="description" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="input">Sample Input</label>
+            <textarea id="input" name="sample_input" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="output">Sample Output</label>
+            <textarea id="output" name="sample_output" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="time_limit">Time Limit (seconds)</label>
+            <input type="number" id="time_limit" name="time_limit" min="1" required>
+        </div>
+        <div class="form-group">
+            <label for="memory_limit">Memory Limit (KB)</label>
+            <input type="number" id="memory_limit" name="memory_limit" min="1" required>
+        </div>
+        <div id="test-cases">
+            <div class="form-group">
+                <label for="test_input_1">Test Case 1 Input</label>
+                <textarea id="test_input_1" name="test_input_1" rows="3" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="test_output_1">Test Case 1 Output</label>
+                <textarea id="test_output_1" name="test_output_1" rows="3" required></textarea>
+            </div>
+        </div>
+        <button type="button" class="btn" onclick="addTestCase()">Add Test Case</button>
+        <button type="button" class="btn" onclick="resetTestCases()">Reset Test Cases</button>
+        <button type="submit" class="btn">Submit Problem</button>
+    </form>
+</section>
+
+<link rel="stylesheet" href="/static/css/createproblem.css">
+<script>
+    let testCaseCount = 1;
+
+    function addTestCase() {
+        testCaseCount++;
+        const testCasesDiv = document.getElementById('test-cases');
+        const newTestCaseInput = document.createElement('div');
+        newTestCaseInput.className = 'form-group';
+        newTestCaseInput.innerHTML = `
+            <label for="test_input_${testCaseCount}">Test Case ${testCaseCount} Input</label>
+            <textarea id="test_input_${testCaseCount}" name="test_input_${testCaseCount}" rows="3" required></textarea>
+        `;
+        const newTestCaseOutput = document.createElement('div');
+        newTestCaseOutput.className = 'form-group';
+        newTestCaseOutput.innerHTML = `
+            <label for="test_output_${testCaseCount}">Test Case ${testCaseCount} Output</label>
+            <textarea id="test_output_${testCaseCount}" name="test_output_${testCaseCount}" rows="3" required></textarea>
+        `;
+        testCasesDiv.appendChild(newTestCaseInput);
+        testCasesDiv.appendChild(newTestCaseOutput);
+    }
+
+    function resetTestCases() {
+        const testCasesDiv = document.getElementById('test-cases');
+        testCasesDiv.innerHTML = `
+            <div class="form-group">
+                <label for="test_input_1">Test Case 1 Input</label>
+                <textarea id="test_input_1" name="test_input_1" rows="3" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="test_output_1">Test Case 1 Output</label>
+                <textarea id="test_output_1" name="test_output_1" rows="3" required></textarea>
+            </div>
+        `;
+        testCaseCount = 1;
+    }
+</script>
+{{ end }}
