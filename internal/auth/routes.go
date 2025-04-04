@@ -1,11 +1,11 @@
 package auth
 
 import (
+	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
 	"log/slog"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
+	"time"
 )
 
 // NewRoutes returns a function that registers routes with the given handler
@@ -14,10 +14,10 @@ func NewRoutes(s Servicer) func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/login", s.ShowLoginPage)
 		r.Get("/signup", s.ShowSignupPage)
+		r.Get("/logout", s.Logout)
 		r.Post("/login", s.Login)
 		r.Post("/signup", s.Signup)
-		//r.Post("/logout", s.Logout)
-		//r.Post("/refresh", s.RefreshToken)
+		r.Post("/refresh", s.RefreshToken)
 	}
 }
 
@@ -33,8 +33,52 @@ func (s *DefaultServicer) ShowLoginPage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
-	//TODO: Implement sql login logic
-	w.Write([]byte("welcome"))
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	s.loginUser(w, r, username, password)
+}
+
+func (s *DefaultServicer) loginUser(w http.ResponseWriter, r *http.Request, username string, password string) {
+
+	user, err := s.querier.GetUserByUsername(r.Context(), s.pool, username)
+	if err != nil {
+		http.Error(w, "Username not found", http.StatusUnauthorized)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	claims := Claims{
+		UserID: user.ID.String(),
+	}
+
+	tokenString, err := s.authenticator.GenerateToken(r.Context(), claims)
+	if err != nil {
+		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:     "token",
+		Value:    tokenString,
+		Expires:  time.Now().Add(s.authenticator.(*AuthenticatorImpl).tokenExpireDuration),
+		HttpOnly: true,
+		Path:     "/",
+	}
+	http.SetCookie(w, cookie)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // ShowSignupPage handles user registration
@@ -50,23 +94,20 @@ func (s *DefaultServicer) ShowSignupPage(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
-	// Parse the form data
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
-	// Extract values from the form
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	// Validate input (you might add more validation here)
 	if username == "" || password == "" {
 		http.Error(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
 
-	// Hash the password using bcrypt
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, "Error processing password", http.StatusInternalServerError)
@@ -79,16 +120,23 @@ func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Redirect the user to login or show a success message
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-
-	w.WriteHeader(http.StatusOK)
+	s.loginUser(w, r, username, password)
 }
 
 // Logout handles user logout
 func (s *DefaultServicer) Logout(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement logout logic
-	w.Write([]byte("Logout endpoint"))
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    "", // Clear the value
+		Path:     "/",
+		Expires:  time.Unix(0, 0), // Expire it
+		MaxAge:   -1,              // Delete immediately
+		HttpOnly: true,
+	})
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // RefreshToken handles token refresh
