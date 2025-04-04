@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"log/slog"
 	"net/http"
 
@@ -23,7 +23,6 @@ func NewRoutes(s Servicer) func(r chi.Router) {
 
 // ShowLoginPage handles user login
 func (s *DefaultServicer) ShowLoginPage(w http.ResponseWriter, r *http.Request) {
-
 	err := s.templates.Render(r.Context(), "login", w, nil)
 	if err != nil {
 		slog.Error("could not render login", "error", err)
@@ -47,7 +46,6 @@ func (s *DefaultServicer) ShowSignupPage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	//TODO: Implement sql ShowSignupPage logic
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -60,34 +58,29 @@ func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
 
 	// Extract values from the form
 	username := r.FormValue("username")
-	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	fmt.Println(username, password, email)
-
 	// Validate input (you might add more validation here)
-	//if username == "" || email == "" || password == "" {
-	//	http.Error(w, "All fields are required", http.StatusBadRequest)
-	//	return
-	//}
+	if username == "" || password == "" {
+		http.Error(w, "All fields are required", http.StatusBadRequest)
+		return
+	}
 
 	// Hash the password using bcrypt
-	//hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	//if err != nil {
-	//	http.Error(w, "Error processing password", http.StatusInternalServerError)
-	//	w.Writ
-	//	return
-	//}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Error processing password", http.StatusInternalServerError)
+		return
+	}
 
-	// Create the user record (this is pseudocode; implement your own DB logic)
-	//err = CreateUser(username, email, string(hashedPassword))
-	//if err != nil {
-	//	http.Error(w, "Could not create user", http.StatusInternalServerError)
-	//	return
-	//}
+	_, err = s.querier.CreateUser(r.Context(), s.pool, username, string(hashedPassword))
+	if err != nil {
+		http.Error(w, "Could not create user", http.StatusInternalServerError)
+		return
+	}
 
-	// Redirect the user to login or show a success message
-	//http.Redirect(w, r, "/login", http.StatusSeeOther)
+	//Redirect the user to login or show a success message
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 
 	w.WriteHeader(http.StatusOK)
 }

@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
 	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
 }
