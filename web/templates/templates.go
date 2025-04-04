@@ -17,11 +17,12 @@ import (
 type PackageName string
 
 const (
-	Home PackageName = "home"
-	Profiles PackageName = "profiles"
+	Home           PackageName = "home"
+	Profiles       PackageName = "profiles"
+	Authentication PackageName = "authentication"
 )
 
-//go:embed shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml
+//go:embed shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml
 var templateFS embed.FS
 
 // Templates holds all parsed templates
