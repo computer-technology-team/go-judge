@@ -22,7 +22,7 @@ const (
 	Authentication PackageName = "authentication"
 )
 
-//go:embed shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml
+//go:embed shared/*.gohtml shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml
 var templateFS embed.FS
 
 // Templates holds all parsed templates
@@ -45,25 +45,27 @@ func GetTemplates(pkg PackageName) (*Templates, error) {
 		return nil, err
 	}
 
+	shared, err := fs.Glob(templateFS, "shared/*.gohtml")
+	if err != nil {
+		return nil, fmt.Errorf("could not get shared templates glob: %w", err)
+	}
+
 	// Get all shared templates for reuse
 	sharedLayouts, err := fs.Glob(templateFS, "shared/layouts/*.gohtml")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get shared layout templates glob: %w", err)
 	}
 
 	sharedPartials, err := fs.Glob(templateFS, "shared/partials/*.gohtml")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get shared partial templates glob: %w", err)
 	}
 
 	// Combine all shared templates
 	var sharedTemplates []string
 	sharedTemplates = append(sharedTemplates, sharedLayouts...)
 	sharedTemplates = append(sharedTemplates, sharedPartials...)
-
-	// First, parse all package templates together with shared templates
-	// This allows templates within the same package to reference each other
-	allTemplates := append(sharedTemplates, pkgTemplates...)
+	sharedTemplates = append(sharedTemplates, shared...)
 
 	// Parse each page template, but include all package templates in each one
 	for _, page := range pkgTemplates {
@@ -73,6 +75,7 @@ func GetTemplates(pkg PackageName) (*Templates, error) {
 		// Create a template with the base layout, partials, and all other templates
 		tmpl := template.New(name)
 
+		allTemplates := append(sharedTemplates, page)
 		// Parse all shared templates and ALL package templates
 		tmpl, err = tmpl.ParseFS(templateFS, allTemplates...)
 		if err != nil {
