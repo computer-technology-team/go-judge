@@ -46,6 +46,9 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	}
 
 	authServicer, err := createAuthenticationServicer(authenticator, pool, querier)
+	if err != nil {
+		return fmt.Errorf("could not create authenticantion servicer: %w", err)
+	}
 
 	profilesServicer, err := createProfilesServicer(pool, querier)
 	if err != nil {

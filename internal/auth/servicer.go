@@ -8,8 +8,11 @@ import (
 )
 
 type Servicer interface {
+	ShowLoginPage(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
+	ShowSignupPage(w http.ResponseWriter, r *http.Request)
 	Signup(w http.ResponseWriter, r *http.Request)
+
 	Logout(w http.ResponseWriter, r *http.Request)
 	RefreshToken(w http.ResponseWriter, r *http.Request)
 }

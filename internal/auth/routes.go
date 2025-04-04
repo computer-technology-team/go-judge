@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -11,17 +12,17 @@ import (
 // This allows for dependency injection when setting up routes
 func NewRoutes(s Servicer) func(r chi.Router) {
 	return func(r chi.Router) {
-		r.Get("/login", s.Login)
-		r.Get("/signup", s.Signup)
-		//r.Post("/login", s.Login)
-		//r.Post("/signup", s.Signup)
+		r.Get("/login", s.ShowLoginPage)
+		r.Get("/signup", s.ShowSignupPage)
+		r.Post("/login", s.Login)
+		r.Post("/signup", s.Signup)
 		//r.Post("/logout", s.Logout)
 		//r.Post("/refresh", s.RefreshToken)
 	}
 }
 
-// Login handles user login
-func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
+// ShowLoginPage handles user login
+func (s *DefaultServicer) ShowLoginPage(w http.ResponseWriter, r *http.Request) {
 
 	err := s.templates.Render(r.Context(), "login", w, nil)
 	if err != nil {
@@ -29,13 +30,16 @@ func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not render", http.StatusInternalServerError)
 		return
 	}
-
-	//TODO: Implement sql login logic
 	w.WriteHeader(http.StatusOK)
 }
 
-// Signup handles user registration
-func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
+	//TODO: Implement sql login logic
+	w.Write([]byte("welcome"))
+}
+
+// ShowSignupPage handles user registration
+func (s *DefaultServicer) ShowSignupPage(w http.ResponseWriter, r *http.Request) {
 	err := s.templates.Render(r.Context(), "signup", w, nil)
 	if err != nil {
 		slog.Error("could not render signup", "error", err)
@@ -43,7 +47,48 @@ func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO: Implement sql Signup logic
+	//TODO: Implement sql ShowSignupPage logic
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
+	// Parse the form data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	// Extract values from the form
+	username := r.FormValue("username")
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+
+	fmt.Println(username, password, email)
+
+	// Validate input (you might add more validation here)
+	//if username == "" || email == "" || password == "" {
+	//	http.Error(w, "All fields are required", http.StatusBadRequest)
+	//	return
+	//}
+
+	// Hash the password using bcrypt
+	//hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	//if err != nil {
+	//	http.Error(w, "Error processing password", http.StatusInternalServerError)
+	//	w.Writ
+	//	return
+	//}
+
+	// Create the user record (this is pseudocode; implement your own DB logic)
+	//err = CreateUser(username, email, string(hashedPassword))
+	//if err != nil {
+	//	http.Error(w, "Could not create user", http.StatusInternalServerError)
+	//	return
+	//}
+
+	// Redirect the user to login or show a success message
+	//http.Redirect(w, r, "/login", http.StatusSeeOther)
+
 	w.WriteHeader(http.StatusOK)
 }
 
