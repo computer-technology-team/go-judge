@@ -11,6 +11,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createAdmin = `-- name: CreateAdmin :one
+INSERT INTO users (username, password_hash, superuser)
+VALUES ($1, $2, true)
+RETURNING id, username, password_hash, superuser
+`
+
+func (q *Queries) CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error) {
+	row := db.QueryRow(ctx, createAdmin, username, passwordHash)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Superuser,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, password_hash, superuser)
 VALUES ($1, $2, false)

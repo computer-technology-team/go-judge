@@ -55,7 +55,7 @@ func (s *AuthenticatorTestSuite) TestGenerateToken() {
 	auth := s.createAuthenticator(s.testKeyID, 1*time.Hour)
 
 	// Generate token
-	tokenString, err := auth.GenerateToken(s.ctx, s.validClaims)
+	tokenString, _, err := auth.GenerateToken(s.ctx, s.validClaims)
 
 	// Assertions
 	assert.NoError(s.T(), err)
@@ -122,7 +122,7 @@ func (s *AuthenticatorTestSuite) TestTokenExpiration() {
 	auth := s.createAuthenticator(s.testKeyID, expiry)
 
 	// Generate token
-	tokenString, err := auth.GenerateToken(s.ctx, s.validClaims)
+	tokenString, _, err := auth.GenerateToken(s.ctx, s.validClaims)
 	require.NoError(s.T(), err)
 
 	// Parse token to check expiration
@@ -155,12 +155,12 @@ func (s *AuthenticatorTestSuite) TestVerifyDecodeToken() {
 	auth := s.createAuthenticator(s.testKeyID, 1*time.Hour)
 
 	// Generate a valid token
-	validToken, err := auth.GenerateToken(s.ctx, s.validClaims)
+	validToken, _, err := auth.GenerateToken(s.ctx, s.validClaims)
 	require.NoError(s.T(), err)
 
 	// Create an expired token
 	expiredAuth := s.createAuthenticator(s.testKeyID, -1*time.Hour) // Negative duration to create expired token
-	expiredToken, err := expiredAuth.GenerateToken(s.ctx, s.validClaims)
+	expiredToken, _, err := expiredAuth.GenerateToken(s.ctx, s.validClaims)
 	require.NoError(s.T(), err)
 
 	// Create a token with wrong signing method
@@ -223,7 +223,7 @@ func (s *AuthenticatorTestSuite) TestKeyRotation() {
 	auth1 := s.createAuthenticator(s.testKeyID, 1*time.Hour)
 
 	// Generate token with first key
-	token1, err := auth1.GenerateToken(s.ctx, s.validClaims)
+	token1, _, err := auth1.GenerateToken(s.ctx, s.validClaims)
 	require.NoError(s.T(), err)
 
 	// Parse token to verify kid
@@ -237,7 +237,7 @@ func (s *AuthenticatorTestSuite) TestKeyRotation() {
 	auth2 := s.createAuthenticator(s.testKeyID2, 1*time.Hour)
 
 	// Generate token with second key
-	token2, err := auth2.GenerateToken(s.ctx, s.validClaims)
+	token2, _, err := auth2.GenerateToken(s.ctx, s.validClaims)
 	require.NoError(s.T(), err)
 
 	// Parse token to verify kid

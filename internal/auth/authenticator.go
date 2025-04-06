@@ -24,7 +24,7 @@ type Claims struct {
 }
 
 type Authenticator interface {
-	GenerateToken(context.Context, Claims) (string, error)
+	GenerateToken(context.Context, Claims) (string, *Claims, error)
 	VerifyDecodeToken(context.Context, string) (*Claims, error)
 }
 
@@ -35,7 +35,7 @@ type AuthenticatorImpl struct {
 }
 
 // GenerateToken implements Authenticator.
-func (a *AuthenticatorImpl) GenerateToken(ctx context.Context, claims Claims) (string, error) {
+func (a *AuthenticatorImpl) GenerateToken(ctx context.Context, claims Claims) (string, *Claims, error) {
 	now := time.Now()
 
 	claims.RegisteredClaims = jwt.RegisteredClaims{
@@ -52,10 +52,15 @@ func (a *AuthenticatorImpl) GenerateToken(ctx context.Context, claims Claims) (s
 
 	key, ok := a.keys[a.keyID]
 	if !ok {
-		return "", errors.New("active signing key not found")
+		return "", nil, errors.New("active signing key not found")
 	}
 
-	return token.SignedString(key)
+	signedToken, err := token.SignedString(key)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return signedToken, &claims, nil
 }
 
 func (a *AuthenticatorImpl) VerifyDecodeToken(ctx context.Context, tokenStr string) (*Claims, error) {

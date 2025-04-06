@@ -1,15 +1,19 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/computer-technology-team/go-judge/config"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 )
 
 func NewCreateAdminCmd() *cobra.Command {
+	var username, password string
+
 	cmd := &cobra.Command{
 		Use:   "create-admin",
 		Short: "creates admin user, if user exists changes role to admin",
@@ -26,16 +30,33 @@ func NewCreateAdminCmd() *cobra.Command {
 				return fmt.Errorf("could not load config: %w", err)
 			}
 
-			_, err = storage.NewPgxPool(ctx, cfg.Database)
+			pool, err := storage.NewPgxPool(ctx, cfg.Database)
 			if err != nil {
 				return fmt.Errorf("could not create database pool: %w", err)
 			}
 
-			_ = storage.New()
+			querier := storage.New()
+
+			if username == "" || password == "" {
+				return errors.New("username or password is empty")
+			}
+
+			passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+			if err != nil {
+				return fmt.Errorf("could not hash the password: %w", err)
+			}
+
+			_, err = querier.CreateAdmin(ctx, pool, username, string(passwordHash))
+			if err != nil {
+				return fmt.Errorf("could not create the admin in database: %w", err)
+			}
 
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&username, "username", "u", "", "the username of admin to create")
+	cmd.Flags().StringVarP(&password, "password", "u", "", "the username of admin to create")
 
 	return cmd
 }

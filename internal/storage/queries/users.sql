@@ -13,3 +13,9 @@ WHERE username = $1;
 INSERT INTO users (username, password_hash, superuser)
 VALUES ($1, $2, false)
 RETURNING id, username, password_hash, superuser;
+
+-- name: CreateAdmin :one
+INSERT INTO users (username, password_hash, superuser)
+VALUES ($1, $2, true)
+RETURNING id, username, password_hash, superuser;
+

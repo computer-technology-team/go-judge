@@ -37,7 +37,7 @@ func NewGenerateTokenCmd() *cobra.Command {
 				return fmt.Errorf("user id is not uuid: %w", err)
 			}
 
-			token, err := authenticator.GenerateToken(ctx, auth.Claims{UserID: userID})
+			token, _, err := authenticator.GenerateToken(ctx, auth.Claims{UserID: userID})
 			if err != nil {
 				return fmt.Errorf("failed to generate token: %w", err)
 			}

@@ -19,7 +19,7 @@ func NewAuthMiddleWare(authenticator auth.Authenticator, pool *pgxpool.Pool, que
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			authToken, err := r.Cookie("token")
+			authToken, err := r.Cookie(auth.TokenCookieKey)
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return
