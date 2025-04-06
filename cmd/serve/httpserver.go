@@ -45,6 +45,11 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("could not create home handler: %w", err)
 	}
 
+	authServicer, err := createAuthenticationServicer(authenticator, pool, querier)
+	if err != nil {
+		return fmt.Errorf("could not create authenticantion servicer: %w", err)
+	}
+
 	profilesServicer, err := createProfilesServicer(pool, querier)
 	if err != nil {
 		return fmt.Errorf("could not create profiles servicer: %w", err)
@@ -74,7 +79,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	// API routes
 	router.Route("/", func(r chi.Router) {
 		// Auth routes
-		r.Route("/auth", auth.NewRoutes(auth.NewServicer()))
+		r.Route("/auth", auth.NewRoutes(authServicer))
 
 		// Problem routes
 		r.Route("/problems", problems.NewRoutes(problems.NewHandler()))
@@ -83,7 +88,10 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		r.Route("/submissions", submissions.NewRoutes(submissions.NewHandler()))
 
 		// Profile routes
-		r.Route("/profiles", profiles.NewRoutes(profilesServicer))
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAuth)
+			r.Route("/profiles", profiles.NewRoutes(profilesServicer))
+		})
 
 		// Home routes
 		r.Route("/", home.NewRoutes(homeHandler))
@@ -140,7 +148,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 func createHomeHandler() (home.Handler, error) {
 	tmpls, err := templates.GetTemplates(templates.Home)
 	if err != nil {
-		return nil, fmt.Errorf("could not get templates: %w", err)
+		return nil, fmt.Errorf("could not get home templates: %w", err)
 	}
 
 	return home.NewHandler(tmpls), nil
@@ -149,8 +157,17 @@ func createHomeHandler() (home.Handler, error) {
 func createProfilesServicer(pool *pgxpool.Pool, querier storage.Querier) (profiles.Servicer, error) {
 	tmpls, err := templates.GetTemplates(templates.Profiles)
 	if err != nil {
-		return nil, fmt.Errorf("could not get templates: %w", err)
+		return nil, fmt.Errorf("could not get profile templates: %w", err)
 	}
 
 	return profiles.NewServicer(tmpls, pool, querier), nil
+}
+
+func createAuthenticationServicer(authenticator auth.Authenticator, pool *pgxpool.Pool, querier storage.Querier) (auth.Servicer, error) {
+	tmpls, err := templates.GetTemplates(templates.Authentication)
+	if err != nil {
+		return nil, fmt.Errorf("could not get authentication templates: %w", err)
+	}
+
+	return auth.NewServicer(authenticator, tmpls, pool, querier), nil
 }

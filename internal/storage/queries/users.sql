@@ -8,3 +8,8 @@ WHERE id = $1;
 SELECT *
 FROM users
 WHERE username = $1;
+
+-- name: CreateUser :one
+INSERT INTO users (username, password_hash, superuser)
+VALUES ($1, $2, false)
+RETURNING id, username, password_hash, superuser;

@@ -11,13 +11,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (username, password_hash, superuser)
+VALUES ($1, $2, false)
+RETURNING id, username, password_hash, superuser
+`
+
+func (q *Queries) CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error) {
+	row := db.QueryRow(ctx, createUser, username, passwordHash)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Superuser,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
-SELECT
-	id, username, password_hash, superuser
-FROM
-	users
-WHERE
-	id = $1
+SELECT id, username, password_hash, superuser
+FROM users
+WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error) {
@@ -33,12 +48,9 @@ func (q *Queries) GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, e
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT
-	id, username, password_hash, superuser
-FROM
-	users
-WHERE
-	username = $1
+SELECT id, username, password_hash, superuser
+FROM users
+WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error) {
