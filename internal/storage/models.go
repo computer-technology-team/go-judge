@@ -8,6 +8,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Problem struct {
+	ID           int32              `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Description  string             `db:"description" json:"description"`
+	SampleInput  string             `db:"sample_input" json:"sample_input"`
+	SampleOutput string             `db:"sample_output" json:"sample_output"`
+	TimeLimit    int32              `db:"time_limit" json:"time_limit"`
+	MemoryLimit  int32              `db:"memory_limit" json:"memory_limit"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	CreatedBy    pgtype.UUID        `db:"created_by" json:"created_by"`
+}
+
+type TestCase struct {
+	ID        int32  `db:"id" json:"id"`
+	ProblemID int32  `db:"problem_id" json:"problem_id"`
+	Input     string `db:"input" json:"input"`
+	Output    string `db:"output" json:"output"`
+}
+
 type User struct {
 	ID           pgtype.UUID `db:"id" json:"id"`
 	Username     string      `db:"username" json:"username"`

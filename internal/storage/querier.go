@@ -13,8 +13,11 @@ import (
 type Querier interface {
 	CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
 	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
+	GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem, error)
 	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
+	InsertProblem(ctx context.Context, db DBTX, arg InsertProblemParams) (Problem, error)
+	InsertTestCase(ctx context.Context, db DBTX, arg InsertTestCaseParams) (TestCase, error)
 	ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 }
 
