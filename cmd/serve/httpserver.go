@@ -17,6 +17,8 @@ import (
 
 	"github.com/computer-technology-team/go-judge/config"
 	"github.com/computer-technology-team/go-judge/internal/auth"
+	authenticatorPkg "github.com/computer-technology-team/go-judge/internal/auth/authenticator"
+	runnerClient "github.com/computer-technology-team/go-judge/internal/clients/runner"
 	"github.com/computer-technology-team/go-judge/internal/home"
 	"github.com/computer-technology-team/go-judge/internal/middleware"
 	"github.com/computer-technology-team/go-judge/internal/problems"
@@ -35,7 +37,17 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 
 	querier := storage.New()
 
-	authenticator, err := auth.NewAuthenticator(cfg.Authentication)
+	runnerClient, err := runnerClient.NewClient(ctx, cfg.RunnerClient)
+	if err != nil {
+		return fmt.Errorf("could not create runner client: %w", err)
+	}
+
+	broker := submissions.NewBroker(cfg.Broker.Workers, runnerClient, querier, pool)
+
+	broker.StartWorkers(ctx)
+	defer broker.StopWorkers()
+
+	authenticator, err := authenticatorPkg.NewAuthenticator(cfg.Authentication)
 	if err != nil {
 		return fmt.Errorf("could not create authenticator: %w", err)
 	}
@@ -58,6 +70,11 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	createProblemTemplates, err := templates.GetTemplates(templates.CreateProblem)
 	if err != nil {
 		return fmt.Errorf("could not get submit problem templates: %w", err)
+	}
+
+	submissionsServicer, err := createSubmissionsServicer(broker, pool, querier)
+	if err != nil {
+		return fmt.Errorf("could not create submission servicer: %w", err)
 	}
 
 	// Create a new router
@@ -87,10 +104,11 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		r.Route("/auth", auth.NewRoutes(authServicer))
 
 		// Problem routes
-		r.Route("/problems", problems.NewRoutes(problems.NewHandler(authenticator, createProblemTemplates, pool, querier)))
+		r.Route("/problems", problems.NewRoutes(problems.NewHandler(createProblemTemplates, pool, querier)))
 
 		// Submission routes
-		r.Route("/submissions", submissions.NewRoutes(submissions.NewHandler()))
+		r.With(middleware.RequireAuth).
+			Route("/submissions", submissions.NewRoutes(submissionsServicer))
 
 		// Profile routes
 		r.Route("/profiles", profiles.NewRoutes(profilesServicer))
@@ -109,7 +127,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 
 	// Create the HTTP server
 	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
+		Addr:         fmt.Sprintf("%s:%d", cfg.JudgeServer.Host, cfg.JudgeServer.Port),
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -137,7 +155,6 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	defer cancel()
 
 	// Doesn't block if no connections, but will otherwise wait
-	// until the timeout deadline
 	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
 		return err
@@ -165,11 +182,20 @@ func createProfilesServicer(pool *pgxpool.Pool, querier storage.Querier) (profil
 	return profiles.NewServicer(tmpls, pool, querier), nil
 }
 
-func createAuthenticationServicer(authenticator auth.Authenticator, pool *pgxpool.Pool, querier storage.Querier) (auth.Servicer, error) {
+func createAuthenticationServicer(authenticator authenticatorPkg.Authenticator, pool *pgxpool.Pool, querier storage.Querier) (auth.Servicer, error) {
 	tmpls, err := templates.GetTemplates(templates.Authentication)
 	if err != nil {
 		return nil, fmt.Errorf("could not get authentication templates: %w", err)
 	}
 
 	return auth.NewServicer(authenticator, tmpls, pool, querier), nil
+}
+
+func createSubmissionsServicer(broker submissions.Broker, pool *pgxpool.Pool, querier storage.Querier) (submissions.Servicer, error) {
+	tmpls, err := templates.GetTemplates(templates.Submissions)
+	if err != nil {
+		return nil, fmt.Errorf("could not get submissions templates: %w", err)
+	}
+
+	return submissions.NewServicer(broker, tmpls, querier, pool), nil
 }

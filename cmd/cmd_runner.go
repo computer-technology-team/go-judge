@@ -5,14 +5,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/computer-technology-team/go-judge/cmd/serve"
+	"github.com/computer-technology-team/go-judge/cmd/runner"
 	"github.com/computer-technology-team/go-judge/config"
 )
 
-func NewServeCmd() *cobra.Command {
+func NewRunnerCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "serve",
-		Short: "Start the HTTP server",
+		Use:   "runner",
+		Short: "Start the Runner service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configPath, err := cmd.Flags().GetString(configFileFlag)
 			if err != nil {
@@ -24,7 +24,7 @@ func NewServeCmd() *cobra.Command {
 				return fmt.Errorf("could not load config: %w", err)
 			}
 
-			return serve.StartServer(cmd.Context(), *cfg)
+			return runner.StartServer(cmd.Context(), *cfg)
 		},
 	}
 

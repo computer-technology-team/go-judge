@@ -1,0 +1,56 @@
+{{ define "submit" }}
+{{ template "base" . }}
+{{ end }}
+{{ define "title" }}Submit Solution - {{ .Data.Title }}{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/submit.css">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
+{{ end }}
+
+{{ define "content" }}
+<div class="submit-container">
+    <div class="problem-header">
+        <h1>{{ .Data.Title }}</h1>
+        <div class="problem-limits">
+            <span class="limit memory-limit">Memory Limit: {{ .Data.MemoryLimitKb }} Kb</span>
+            <span class="limit time-limit">Time Limit: {{ .Data.TimeLimitMs }} ms</span>
+        </div>
+    </div>
+
+    <div class="submission-form">
+        <form action="/submissions" method="POST">
+            <input type="hidden" name="problem_id" value="{{ .Data.ID }}">
+            
+            <div class="form-group">
+                <label for="code">Solution (Go)</label>
+                <textarea id="code" name="code" placeholder="// Write your Go code here"></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Submit Solution</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var codeEditor = CodeMirror.fromTextArea(document.getElementById('code'), {
+            mode: 'text/x-go',
+            theme: 'default',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: true,
+            lineWrapping: true,
+            autofocus: true
+        });
+        
+        codeEditor.setSize(null, 400);
+    });
+</script>
+{{ end }}

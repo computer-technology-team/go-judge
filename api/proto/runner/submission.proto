@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package gojudge;
+
+option go_package = "github.com/computer-technology-team/go-judge/api/gen/submission";
+
+service Runner {
+  rpc ExecuteSubmission(SubmissionRequest) returns (stream SubmissionStatusUpdate) {}
+}
+
+message SubmissionRequest {
+  message TestCase {
+    string input = 1;
+    string output = 2;
+  }
+
+  string submission_id = 1;
+  string code = 2;
+  int64 time_limit_ms = 3;
+  int64 memory_limit_kb = 4;
+  repeated TestCase test_cases = 5;
+}
+
+message SubmissionStatusUpdate {
+  enum Status {
+    PENDING = 0;
+    RUNNING = 1;
+    ACCEPTED = 2;
+    WRONG_ANSWER = 3;
+    TIME_LIMIT_EXCEEDED = 4;
+    MEMORY_LIMIT_EXCEEDED = 5;
+    RUNTIME_ERROR = 6;
+    COMPILATION_ERROR = 7;
+    INTERNAL_ERROR = 8;
+  }
+
+  string submission_id = 1;
+  Status status = 2;
+
+  int32 tests_completed = 3;
+  int32 total_tests = 4;
+  int64 max_time_spent_ms = 5;
+}

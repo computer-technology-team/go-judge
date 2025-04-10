@@ -47,6 +47,29 @@ func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem,
 	return items, nil
 }
 
+const getProblemByID = `-- name: GetProblemByID :one
+SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
+FROM problems
+WHERE id = $1
+`
+
+func (q *Queries) GetProblemByID(ctx context.Context, db DBTX, id int32) (Problem, error) {
+	row := db.QueryRow(ctx, getProblemByID, id)
+	var i Problem
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.SampleInput,
+		&i.SampleOutput,
+		&i.TimeLimitMs,
+		&i.MemoryLimitKb,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
 const insertProblem = `-- name: InsertProblem :one
 INSERT INTO problems (
     title,

@@ -1,4 +1,4 @@
-package auth
+package authenticator
 
 import (
 	"context"
@@ -13,10 +13,6 @@ import (
 
 	"github.com/computer-technology-team/go-judge/config"
 )
-
-const issuer = "gojudge"
-
-var ErrSigningKeyNotFound = errors.New("signing key not found")
 
 type Claims struct {
 	UserID string `json:"user_id"`

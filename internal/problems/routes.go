@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/computer-technology-team/go-judge/internal/auth"
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 	"github.com/computer-technology-team/go-judge/web/templates"
@@ -48,7 +47,7 @@ type DefaultHandler struct {
 }
 
 // NewHandler creates a new instance of the default problem handler
-func NewHandler(authenticator auth.Authenticator, templates *templates.Templates, pool *pgxpool.Pool, querier storage.Querier) Handler {
+func NewHandler(templates *templates.Templates, pool *pgxpool.Pool, querier storage.Querier) Handler {
 	return &DefaultHandler{templates: templates, pool: pool, querier: querier}
 }
 

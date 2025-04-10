@@ -9,17 +9,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/computer-technology-team/go-judge/internal/auth"
+	authenticatorPkg "github.com/computer-technology-team/go-judge/internal/auth/authenticator"
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 )
 
-func NewAuthMiddleWare(authenticator auth.Authenticator, pool *pgxpool.Pool, querier storage.Querier) func(http.Handler) http.Handler {
+func NewAuthMiddleWare(authenticator authenticatorPkg.Authenticator, pool *pgxpool.Pool, querier storage.Querier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			authToken, err := r.Cookie(auth.TokenCookieKey)
+			authToken, err := r.Cookie(authenticatorPkg.TokenCookieKey)
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return

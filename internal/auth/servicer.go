@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/computer-technology-team/go-judge/internal/auth/authenticator"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 	"github.com/computer-technology-team/go-judge/web/templates"
 )
@@ -21,13 +22,13 @@ type Servicer interface {
 }
 
 type DefaultServicer struct {
-	authenticator Authenticator
+	authenticator authenticator.Authenticator
 	templates     *templates.Templates
 	pool          *pgxpool.Pool
 	querier       storage.Querier
 }
 
-func NewServicer(authenticator Authenticator,
+func NewServicer(authenticator authenticator.Authenticator,
 	templates *templates.Templates,
 	pool *pgxpool.Pool,
 	querier storage.Querier,
@@ -85,7 +86,7 @@ func (s *DefaultServicer) loginUser(w http.ResponseWriter, r *http.Request, user
 		return
 	}
 
-	claims := Claims{
+	claims := authenticator.Claims{
 		UserID: user.ID.String(),
 	}
 
@@ -96,7 +97,7 @@ func (s *DefaultServicer) loginUser(w http.ResponseWriter, r *http.Request, user
 	}
 
 	cookie := &http.Cookie{
-		Name:     TokenCookieKey,
+		Name:     authenticator.TokenCookieKey,
 		Value:    tokenString,
 		Expires:  tokenClaims.ExpiresAt.Time,
 		HttpOnly: true,

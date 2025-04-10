@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc/resolver"
 )
 
 const configFileFlag = "config"
@@ -31,16 +32,19 @@ func NewRootCmd() *cobra.Command {
 func RegisterCommandRecursive(parent *cobra.Command) {
 	serveCmd := NewServeCmd()
 
-	migrateCmd := NewMigrateCmd()
+	runnerCmd := NewRunnerCmd()
 
+	migrateCmd := NewMigrateCmd()
 	generateTokenCmd := NewGenerateTokenCmd()
 
 	createAdminCmd := NewCreateAdminCmd()
 
-	parent.AddCommand(serveCmd, migrateCmd, createAdminCmd, generateTokenCmd)
+	parent.AddCommand(serveCmd, runnerCmd, migrateCmd, createAdminCmd, generateTokenCmd)
 }
 
 func Execute() {
+	resolver.SetDefaultScheme("dns")
+
 	err := NewRootCmd().Execute()
 	if err != nil {
 		slog.Error("error in executing command", "error", err)

@@ -1,6 +1,5 @@
 FROM golang:1.23 AS builder
 
-# Update apt keys and install build dependencies
 RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
@@ -10,53 +9,39 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy go.mod and go.sum files
 COPY go.mod go.sum ./
 
-# Download dependencies
 RUN go mod download
 
-# Copy the source code
 COPY . .
 
-# Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-judge .
 
-# Create a runtime image
 FROM ubuntu:22.04
 
-# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
     && apt-key update \
     && apt-get update && apt-get install -y \
-    tzdata \
+    tzdata wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.19 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
 WORKDIR /app
 
-# Copy the binary from the builder stage
 COPY --from=builder /app/go-judge .
 
-# Copy entrypoint script
-COPY --from=builder /app/scripts/docker-entrypoint.sh .
-RUN chmod +x docker-entrypoint.sh
+COPY --from=builder /app/scripts /app/scripts
+RUN chmod +x /app/scripts/*.sh
 
-COPY ./configs/config.yaml /app/config.yaml
-
-# Create a non-root user to run the application
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose the application port
-EXPOSE 8080
 
-
-# Command to run migrations and then start the application
-ENTRYPOINT ["./docker-entrypoint.sh"]
-
+ENTRYPOINT ["./judge.docker-entrypoint.sh"]

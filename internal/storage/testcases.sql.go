@@ -9,6 +9,37 @@ import (
 	"context"
 )
 
+const getTestCasesByProblemID = `-- name: GetTestCasesByProblemID :many
+SELECT id, problem_id, input, output
+FROM test_cases
+WHERE problem_id = $1
+`
+
+func (q *Queries) GetTestCasesByProblemID(ctx context.Context, db DBTX, problemID int32) ([]TestCase, error) {
+	rows, err := db.Query(ctx, getTestCasesByProblemID, problemID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TestCase
+	for rows.Next() {
+		var i TestCase
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProblemID,
+			&i.Input,
+			&i.Output,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertTestCase = `-- name: InsertTestCase :one
 INSERT INTO test_cases (problem_id, input, output)
 VALUES ($1, $2, $3)

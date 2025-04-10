@@ -5,8 +5,61 @@
 package storage
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type SubmissionStatus string
+
+const (
+	SubmissionStatusINQUEUE             SubmissionStatus = "IN_QUEUE"
+	SubmissionStatusPENDING             SubmissionStatus = "PENDING"
+	SubmissionStatusRUNNING             SubmissionStatus = "RUNNING"
+	SubmissionStatusACCEPTED            SubmissionStatus = "ACCEPTED"
+	SubmissionStatusWRONGANSWER         SubmissionStatus = "WRONG_ANSWER"
+	SubmissionStatusTIMELIMITEXCEEDED   SubmissionStatus = "TIME_LIMIT_EXCEEDED"
+	SubmissionStatusMEMORYLIMITEXCEEDED SubmissionStatus = "MEMORY_LIMIT_EXCEEDED"
+	SubmissionStatusRUNTIMEERROR        SubmissionStatus = "RUNTIME_ERROR"
+	SubmissionStatusCOMPILATIONERROR    SubmissionStatus = "COMPILATION_ERROR"
+	SubmissionStatusINTERNALERROR       SubmissionStatus = "INTERNAL_ERROR"
+)
+
+func (e *SubmissionStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SubmissionStatus(s)
+	case string:
+		*e = SubmissionStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SubmissionStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSubmissionStatus struct {
+	SubmissionStatus SubmissionStatus `json:"submission_status"`
+	Valid            bool             `json:"valid"` // Valid is true if SubmissionStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSubmissionStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SubmissionStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SubmissionStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSubmissionStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SubmissionStatus), nil
+}
 
 type Problem struct {
 	ID            int32              `db:"id" json:"id"`
@@ -18,6 +71,18 @@ type Problem struct {
 	MemoryLimitKb int64              `db:"memory_limit_kb" json:"memory_limit_kb"`
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	CreatedBy     pgtype.UUID        `db:"created_by" json:"created_by"`
+}
+
+type Submission struct {
+	ID           pgtype.UUID        `db:"id" json:"id"`
+	ProblemID    int32              `db:"problem_id" json:"problem_id"`
+	UserID       pgtype.UUID        `db:"user_id" json:"user_id"`
+	SolutionCode string             `db:"solution_code" json:"solution_code"`
+	Status       SubmissionStatus   `db:"status" json:"status"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	LastModified pgtype.Timestamptz `db:"last_modified" json:"last_modified"`
+	Message      pgtype.Text        `db:"message" json:"message"`
+	Retries      int32              `db:"retries" json:"retries"`
 }
 
 type TestCase struct {

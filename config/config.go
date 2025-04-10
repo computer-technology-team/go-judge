@@ -9,14 +9,21 @@ import (
 )
 
 type Config struct {
-	Server         ServerConfig         `mapstructure:"server"`
+	JudgeServer    ServerConfig         `mapstructure:"judge_server"`
+	RunnerServer   ServerConfig         `mapstructure:"runner_server"`
+	RunnerClient   ClientConfig         `mapstructure:"runner_client"`
 	Database       DatabaseConfig       `mapstructure:"database"`
 	Authentication AuthenticationConfig `mapstructure:"authentication"`
+	Broker         BrokerConfig         `mapstructure:"broker"`
 }
 
 type ServerConfig struct {
 	Port int    `mapstructure:"port"`
 	Host string `mapstructure:"host"`
+}
+
+type ClientConfig struct {
+	Address string `mapstructure:"address"`
 }
 
 type DatabaseConfig struct {
@@ -31,6 +38,10 @@ type DatabaseConfig struct {
 	MaxConnLifetime time.Duration `mapstructure:"max_conn_lifetime"`
 	MaxConnIdleTime time.Duration `mapstructure:"max_conn_idle_time"`
 	ConnTimeout     time.Duration `mapstructure:"conn_timeout"`
+}
+
+type BrokerConfig struct {
+	Workers int `mapstructure:"workers"`
 }
 
 // DSN returns a PostgreSQL connection string
@@ -48,9 +59,14 @@ type AuthenticationConfig struct {
 func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
-	// Server defaults
-	v.SetDefault("server.port", 8080)
-	v.SetDefault("server.host", "0.0.0.0")
+	v.SetDefault("judge_server.port", 8080)
+	v.SetDefault("judge_server.host", "0.0.0.0")
+	v.SetDefault("runner_server.port", 8888)
+	v.SetDefault("runner_server.host", "0.0.0.0")
+
+	v.SetDefault("runner_client.address", "runner:8888")
+
+	v.SetDefault("broker.workers", 5)
 
 	// Database defaults
 	v.SetDefault("database.host", "localhost")

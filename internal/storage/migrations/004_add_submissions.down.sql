@@ -1,0 +1,4 @@
+DROPTABLEsubmissions;
+DROPTYPE SUBMISSION_STATUS;
+DROPFUNCTIONsync_last_modified_column;
+DROPTRIGGERsync_submissions_last_modified;
