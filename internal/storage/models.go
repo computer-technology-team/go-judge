@@ -9,15 +9,15 @@ import (
 )
 
 type Problem struct {
-	ID           int32              `db:"id" json:"id"`
-	Title        string             `db:"title" json:"title"`
-	Description  string             `db:"description" json:"description"`
-	SampleInput  string             `db:"sample_input" json:"sample_input"`
-	SampleOutput string             `db:"sample_output" json:"sample_output"`
-	TimeLimit    int32              `db:"time_limit" json:"time_limit"`
-	MemoryLimit  int32              `db:"memory_limit" json:"memory_limit"`
-	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	CreatedBy    pgtype.UUID        `db:"created_by" json:"created_by"`
+	ID            int32              `db:"id" json:"id"`
+	Title         string             `db:"title" json:"title"`
+	Description   string             `db:"description" json:"description"`
+	SampleInput   string             `db:"sample_input" json:"sample_input"`
+	SampleOutput  string             `db:"sample_output" json:"sample_output"`
+	TimeLimitMs   int64              `db:"time_limit_ms" json:"time_limit_ms"`
+	MemoryLimitKb int64              `db:"memory_limit_kb" json:"memory_limit_kb"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	CreatedBy     pgtype.UUID        `db:"created_by" json:"created_by"`
 }
 
 type TestCase struct {

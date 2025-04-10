@@ -1,16 +1,20 @@
 package problems
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/computer-technology-team/go-judge/internal/auth"
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 	"github.com/computer-technology-team/go-judge/web/templates"
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Handler defines the interface for problem handlers
@@ -65,6 +69,8 @@ func (h *DefaultHandler) ListProblems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	err := r.ParseForm()
 	if err != nil {
 		slog.Error("could not parse form data", "error", err)
@@ -73,13 +79,14 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract form data
-	title := r.FormValue("title")
-	description := r.FormValue("description")
-	sampleInput := r.FormValue("sample_input")
-	sampleOutput := r.FormValue("sample_output")
-	timeLimit := r.FormValue("time_limit")
-	memoryLimit := r.FormValue("memory_limit")
+	title := r.PostFormValue("title")
+	description := r.PostFormValue("description")
+	sampleInput := r.PostFormValue("sample_input")
+	sampleOutput := r.PostFormValue("sample_output")
+	timeLimit := r.PostFormValue("time_limit")
+	memoryLimit := r.PostFormValue("memory_limit")
 	testCases := []storage.TestCase{}
+
 	for i := 1; ; i++ {
 		testInput := r.FormValue("test_input_" + strconv.Itoa(i))
 		testOutput := r.FormValue("test_output_" + strconv.Itoa(i))
@@ -123,25 +130,31 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	created_by, _ := internalcontext.GetUserFromContext(r.Context())
-	// TODO validate the user:
-	// created_by, ok := r.Context().Value("user_id").(pgtype.UUID)
-	// if !ok || !created_by.Valid {
-	// 	slog.Error("user_id is invalid or nil")
-	// 	http.Error(w, "internal server error", http.StatusInternalServerError)
-	// 	return
-	// }
+
+	tx, err := h.pool.Begin(ctx)
+	if err != nil {
+		slog.Error("could not begin transaction", "error", err)
+		http.Error(w, "could not start saving", http.StatusInternalServerError)
+		return
+	}
+
+	defer func(ctx context.Context, tx pgx.Tx) {
+		err := tx.Rollback(ctx)
+		if !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Error("could not revert transaction", "error", err)
+		}
+	}(ctx, tx)
 
 	// Insert the problem into the database
-	p, err := h.querier.InsertProblem(r.Context(), h.pool, storage.InsertProblemParams{
-		Title:        title,
-		Description:  description,
-		SampleInput:  sampleInput,
-		SampleOutput: sampleOutput,
-		TimeLimit:    int32(timeLimitInt),
-		MemoryLimit:  int32(memoryLimitInt),
-		CreatedBy:    created_by.ID,
+	p, err := h.querier.InsertProblem(ctx, tx, storage.InsertProblemParams{
+		Title:         title,
+		Description:   description,
+		SampleInput:   sampleInput,
+		SampleOutput:  sampleOutput,
+		TimeLimitMs:   int64(timeLimitInt),
+		MemoryLimitKb: int64(memoryLimitInt),
+		CreatedBy:     created_by.ID,
 	})
-
 	if err != nil {
 		slog.Error("could not insert problem", "error", err)
 		http.Error(w, "could not insert problem", http.StatusInternalServerError)
@@ -150,7 +163,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 
 	// Insert all test cases into the database
 	for _, testCase := range testCases {
-		_, err = h.querier.InsertTestCase(r.Context(), h.pool, storage.InsertTestCaseParams{
+		_, err = h.querier.InsertTestCase(ctx, tx, storage.InsertTestCaseParams{
 			ProblemID: p.ID,
 			Input:     testCase.Input,
 			Output:    testCase.Output,
@@ -160,6 +173,13 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "could not insert test case", http.StatusInternalServerError)
 			return
 		}
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		slog.Error("could not commit transaction", "error", err)
+		http.Error(w, "could not finalize save", http.StatusInternalServerError)
+		return
 	}
 
 	slog.Info("Problem created successfully", "problem_id", p.ID)

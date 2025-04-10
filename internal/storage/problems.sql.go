@@ -12,7 +12,7 @@ import (
 )
 
 const getAllProblemsSorted = `-- name: GetAllProblemsSorted :many
-SELECT id, title, description, sample_input, sample_output, time_limit, memory_limit, created_at, created_by
+SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
 FROM problems
 ORDER BY created_at DESC
 `
@@ -32,8 +32,8 @@ func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem,
 			&i.Description,
 			&i.SampleInput,
 			&i.SampleOutput,
-			&i.TimeLimit,
-			&i.MemoryLimit,
+			&i.TimeLimitMs,
+			&i.MemoryLimitKb,
 			&i.CreatedAt,
 			&i.CreatedBy,
 		); err != nil {
@@ -48,19 +48,27 @@ func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem,
 }
 
 const insertProblem = `-- name: InsertProblem :one
-INSERT INTO problems (title, description, sample_input, sample_output, time_limit, memory_limit, created_by)
+INSERT INTO problems (
+    title,
+    description,
+    sample_input,
+    sample_output,
+    time_limit_ms,
+    memory_limit_kb,
+    created_by
+)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, title, description, sample_input, sample_output, time_limit, memory_limit, created_at, created_by
+RETURNING id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
 `
 
 type InsertProblemParams struct {
-	Title        string      `db:"title" json:"title"`
-	Description  string      `db:"description" json:"description"`
-	SampleInput  string      `db:"sample_input" json:"sample_input"`
-	SampleOutput string      `db:"sample_output" json:"sample_output"`
-	TimeLimit    int32       `db:"time_limit" json:"time_limit"`
-	MemoryLimit  int32       `db:"memory_limit" json:"memory_limit"`
-	CreatedBy    pgtype.UUID `db:"created_by" json:"created_by"`
+	Title         string      `db:"title" json:"title"`
+	Description   string      `db:"description" json:"description"`
+	SampleInput   string      `db:"sample_input" json:"sample_input"`
+	SampleOutput  string      `db:"sample_output" json:"sample_output"`
+	TimeLimitMs   int64       `db:"time_limit_ms" json:"time_limit_ms"`
+	MemoryLimitKb int64       `db:"memory_limit_kb" json:"memory_limit_kb"`
+	CreatedBy     pgtype.UUID `db:"created_by" json:"created_by"`
 }
 
 func (q *Queries) InsertProblem(ctx context.Context, db DBTX, arg InsertProblemParams) (Problem, error) {
@@ -69,8 +77,8 @@ func (q *Queries) InsertProblem(ctx context.Context, db DBTX, arg InsertProblemP
 		arg.Description,
 		arg.SampleInput,
 		arg.SampleOutput,
-		arg.TimeLimit,
-		arg.MemoryLimit,
+		arg.TimeLimitMs,
+		arg.MemoryLimitKb,
 		arg.CreatedBy,
 	)
 	var i Problem
@@ -80,8 +88,8 @@ func (q *Queries) InsertProblem(ctx context.Context, db DBTX, arg InsertProblemP
 		&i.Description,
 		&i.SampleInput,
 		&i.SampleOutput,
-		&i.TimeLimit,
-		&i.MemoryLimit,
+		&i.TimeLimitMs,
+		&i.MemoryLimitKb,
 		&i.CreatedAt,
 		&i.CreatedBy,
 	)

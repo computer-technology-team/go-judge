@@ -19,11 +19,11 @@ type PackageName string
 const (
 	Home           PackageName = "home"
 	Profiles       PackageName = "profiles"
-	CreateProblem  PackageName = "createproblem"
+	CreateProblem  PackageName = "problems"
 	Authentication PackageName = "authentication"
 )
 
-//go:embed shared/*.gohtml shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml createproblem/*.gohtml
+//go:embed shared/*.gohtml shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml problems/*.gohtml
 var templateFS embed.FS
 
 // Templates holds all parsed templates
