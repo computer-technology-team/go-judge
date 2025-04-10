@@ -18,6 +18,7 @@ type Querier interface {
 	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
 	InsertProblem(ctx context.Context, db DBTX, arg InsertProblemParams) (Problem, error)
 	InsertTestCase(ctx context.Context, db DBTX, arg InsertTestCaseParams) (TestCase, error)
+	ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -67,35 +67,32 @@ nav a:hover {
   color: var(--primary-color);
 }
 
-nav a[href="/signup"],
-nav a[href="/login"] {
-  background-color: var(--primary-color);
+nav .nav-btn {
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
   transition: background-color 0.2s, transform 0.1s;
 }
 
-nav a[href="/signup"] {
+nav .nav-btn-primary {
   background-color: var(--primary-color);
 }
 
-nav a[href="/login"] {
+nav .nav-btn-secondary {
   background-color: var(--secondary-color);
 }
 
-nav a[href="/signup"]:hover,
-nav a[href="/login"]:hover {
+nav .nav-btn:hover {
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-nav a[href="/signup"]:hover {
+nav .nav-btn-primary:hover {
   background-color: #3b82f6;
 }
 
-nav a[href="/login"]:hover {
+nav .nav-btn-secondary:hover {
   background-color: #2563eb;
 }
 

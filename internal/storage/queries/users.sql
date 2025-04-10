@@ -18,3 +18,8 @@ INSERT INTO users (username, password_hash, superuser)
 VALUES ($1, $2, true)
 RETURNING id, username, password_hash, superuser;
 
+-- name: ToggleUserSuperLevel :one
+UPDATE users
+SET superuser = NOT superuser
+WHERE id = $1
+RETURNING *;
