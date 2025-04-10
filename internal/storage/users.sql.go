@@ -82,3 +82,22 @@ func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username strin
 	)
 	return i, err
 }
+
+const toggleUserSuperLevel = `-- name: ToggleUserSuperLevel :one
+UPDATE users
+SET superuser = NOT superuser
+WHERE id = $1
+RETURNING id, username, password_hash, superuser
+`
+
+func (q *Queries) ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.UUID) (User, error) {
+	row := db.QueryRow(ctx, toggleUserSuperLevel, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Superuser,
+	)
+	return i, err
+}

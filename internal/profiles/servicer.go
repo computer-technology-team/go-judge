@@ -63,12 +63,42 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetMeProfile gets the current user's profile
-func (s *servicerImpl) GetMeProfile(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement update profile logic
-	w.Write([]byte("Get Me Profile"))
-}
-
 func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Toggle Super user"))
+	ctx := r.Context()
+
+	username := chi.URLParam(r, "username")
+
+	user, err := s.querier.GetUserByUsername(ctx, s.pool, username)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// TODO: make this html
+			http.Error(w, "user not found", http.StatusNotFound)
+
+			return
+		}
+
+		slog.ErrorContext(ctx, "could not get user from database",
+			slog.String("username", username), "error", err)
+		http.Error(w, "could not get user from storage", http.StatusInternalServerError)
+		return
+	}
+
+	updatedUser, err := s.querier.ToggleUserSuperLevel(ctx, s.pool, user.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "could not toggle user superuser", http.StatusInternalServerError)
+		return
+	}
+
+	err = s.templates.Render(ctx, "profilepage", w, updatedUser)
+	if err != nil {
+		slog.ErrorContext(ctx, "could not render profile",
+			slog.String("username", user.Username), "error", err)
+
+		http.Error(w, "could not render profile", http.StatusInternalServerError)
+		return
+	}
 }

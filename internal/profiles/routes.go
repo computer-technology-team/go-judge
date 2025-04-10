@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/computer-technology-team/go-judge/internal/middleware"
 )
 
 // Servicer defines the interface for profile handlers
@@ -17,6 +19,7 @@ type Servicer interface {
 func NewRoutes(h Servicer) func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/{username}", h.GetProfile)
-		r.Post("/{username}/toggle-superuser", h.ToggleSuperUser)
+		r.With(middleware.RequireSuperUser).
+			Post("/{username}/toggle-superuser", h.ToggleSuperUser)
 	}
 }

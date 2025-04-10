@@ -56,7 +56,7 @@ func NewCreateAdminCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&username, "username", "u", "", "the username of admin to create")
-	cmd.Flags().StringVarP(&password, "password", "u", "", "the username of admin to create")
+	cmd.Flags().StringVarP(&password, "password", "p", "", "the username of admin to create")
 
 	return cmd
 }

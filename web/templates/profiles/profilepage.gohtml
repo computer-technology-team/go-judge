@@ -17,7 +17,7 @@
         <div class="profile-info">
             <h2>{{ .Data.Username }}</h2>
             
-            {{ if .User.Superuser }}
+            {{ if and .User (eq .User.Superuser true) }}
                 <div class="admin-controls">
                     <h3>Admin Controls</h3>
                     <div class="superuser-toggle">

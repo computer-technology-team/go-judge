@@ -88,10 +88,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		r.Route("/submissions", submissions.NewRoutes(submissions.NewHandler()))
 
 		// Profile routes
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.RequireAuth)
-			r.Route("/profiles", profiles.NewRoutes(profilesServicer))
-		})
+		r.Route("/profiles", profiles.NewRoutes(profilesServicer))
 
 		// Home routes
 		r.Route("/", home.NewRoutes(homeHandler))
