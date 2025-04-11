@@ -16,7 +16,7 @@
 .unauthenticated-img {
 	max-width: 280px;
 	margin-bottom: 2rem;
-	animation: float 1s cubic-bezier infinite;
+	animation: float 1.5s ease-in-out infinite;
 }
 
 .unauthenticated-title {
