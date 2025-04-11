@@ -1,12 +1,14 @@
 .hero {
 	text-align: center;
-	padding: 3rem 0;
+	padding: 3rem 1.5rem;
 	background-color: white;
 	margin-bottom: 30px;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	border-radius: 10px;
 }
 
 .hero-content {

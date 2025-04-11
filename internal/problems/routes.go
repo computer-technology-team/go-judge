@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/computer-technology-team/go-judge/internal/auth"
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
+	"github.com/computer-technology-team/go-judge/internal/middleware"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 	"github.com/computer-technology-team/go-judge/web/templates"
 )
@@ -29,11 +29,14 @@ type Handler interface {
 
 // NewRoutes returns a function that registers routes with the given handler
 // This allows for dependency injection when setting up routes
-func NewRoutes(h Handler) func(r chi.Router) {
+func NewRoutes(h Handler, sharedTmpls *templates.Templates) func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/", h.ListProblems)
-		r.Post("/", h.CreateProblem)
-		r.Get("/create", h.CreateProblemForm)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.NewRequireAuthMiddleware(sharedTmpls))
+			r.Post("/", h.CreateProblem)
+			r.Get("/create", h.CreateProblemForm)
+		})
 		r.Get("/{id}", h.GetProblem)
 		r.Put("/{id}", h.UpdateProblem)
 		r.Delete("/{id}", h.DeleteProblem)
@@ -48,7 +51,7 @@ type DefaultHandler struct {
 }
 
 // NewHandler creates a new instance of the default problem handler
-func NewHandler(authenticator auth.Authenticator, templates *templates.Templates, pool *pgxpool.Pool, querier storage.Querier) Handler {
+func NewHandler(templates *templates.Templates, pool *pgxpool.Pool, querier storage.Querier) Handler {
 	return &DefaultHandler{templates: templates, pool: pool, querier: querier}
 }
 
@@ -193,8 +196,9 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 // GetProblem returns a specific problem
 func (h *DefaultHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement get problem logic
-	id := chi.URLParam(r, "id")
-	w.Write([]byte("Get problem endpoint: " + id))
+	// id := chi.URLParam(r, "id")
+	// w.Write([]byte("Get problem endpoint: " + id))
+	panic("salam")
 }
 
 // UpdateProblem updates a specific problem

@@ -12,6 +12,7 @@ import (
 	"github.com/computer-technology-team/go-judge/internal/auth"
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
 	"github.com/computer-technology-team/go-judge/internal/storage"
+	"github.com/computer-technology-team/go-judge/web/templates"
 )
 
 func NewAuthMiddleWare(authenticator auth.Authenticator, pool *pgxpool.Pool, querier storage.Querier) func(http.Handler) http.Handler {
@@ -53,25 +54,52 @@ func NewAuthMiddleWare(authenticator auth.Authenticator, pool *pgxpool.Pool, que
 	}
 }
 
-// RequireAuth middleware ensures the user is authenticated
-func RequireAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Context().Value(internalcontext.UserContextKey) == nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func NewRequireAuthMiddleware(tmpl *templates.Templates) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Context().Value(internalcontext.UserContextKey) == nil {
+				renderUnAuthenticated(r.Context(), tmpl, w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
-// RequireSuperUser middleware ensures the user is superuser
-func RequireSuperUser(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, ok := internalcontext.GetUserFromContext(r.Context())
-		if !ok || !user.Superuser {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func NewRequireSuperUserMiddleware(tmpl *templates.Templates) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			user, ok := internalcontext.GetUserFromContext(r.Context())
+			if !ok {
+				renderUnAuthenticated(ctx, tmpl, w)
+				return
+			}
+			if !user.Superuser {
+				renderUnAuthorized(ctx, tmpl, w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func renderUnAuthenticated(ctx context.Context, tmpl *templates.Templates, w http.ResponseWriter) {
+	w.WriteHeader(http.StatusUnauthorized)
+	err := tmpl.Render(ctx, "unauthenticated", w, nil)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to render unauthenticated template", "error", err)
+		http.Error(w, "unauthenticated", http.StatusUnauthorized)
+		return
+	}
+}
+
+func renderUnAuthorized(ctx context.Context, tmpl *templates.Templates, w http.ResponseWriter) {
+	w.WriteHeader(http.StatusForbidden)
+	err := tmpl.Render(ctx, "unauthorized", w, nil)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to render  template", "error", err)
+		http.Error(w, "unauthorized", http.StatusForbidden)
+		return
+	}
 }

@@ -60,12 +60,17 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("could not get submit problem templates: %w", err)
 	}
 
+	sharedTemplates, err := templates.GetSharedTemplates()
+	if err != nil {
+		return fmt.Errorf("could not get shared templates: %w", err)
+	}
+
 	// Create a new router
 	router := chi.NewRouter()
 
 	// Middleware
 	router.Use(chiMiddleware.Logger)
-	router.Use(chiMiddleware.Recoverer)
+	router.Use(middleware.NewRecoveryHandler(sharedTemplates))
 	router.Use(chiMiddleware.RealIP)
 	router.Use(chiMiddleware.RequestID)
 	router.Use(chiMiddleware.Timeout(60 * time.Second))
@@ -87,13 +92,13 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		r.Route("/auth", auth.NewRoutes(authServicer))
 
 		// Problem routes
-		r.Route("/problems", problems.NewRoutes(problems.NewHandler(authenticator, createProblemTemplates, pool, querier)))
+		r.Route("/problems", problems.NewRoutes(problems.NewHandler(createProblemTemplates, pool, querier), sharedTemplates))
 
 		// Submission routes
 		r.Route("/submissions", submissions.NewRoutes(submissions.NewHandler()))
 
 		// Profile routes
-		r.Route("/profiles", profiles.NewRoutes(profilesServicer))
+		r.Route("/profiles", profiles.NewRoutes(profilesServicer, sharedTemplates))
 
 		// Home routes
 		r.Route("/", home.NewRoutes(homeHandler))

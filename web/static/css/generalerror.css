@@ -1,0 +1,50 @@
+.generalerror-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 2rem;
+	margin: 2rem auto;
+	max-width: 800px;
+	min-height: 60vh;
+	background-color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.generalerror-img {
+	max-width: 300px;
+	margin-bottom: 2rem;
+}
+
+.generalerror-title {
+	font-size: 2.5rem;
+	color: var(--error-color);
+	margin-bottom: 1rem;
+}
+
+.generalerror-message {
+	font-size: 1.2rem;
+	color: var(--text-color);
+	margin-bottom: 2rem;
+	line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+	.generalerror-container {
+		padding: 1rem;
+	}
+
+	.generalerror-img {
+		max-width: 200px;
+	}
+
+	.generalerror-title {
+		font-size: 2rem;
+	}
+
+	.generalerror-message {
+		font-size: 1rem;
+	}
+}

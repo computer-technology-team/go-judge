@@ -1,0 +1,24 @@
+
+{{define "unauthenticated" }}
+	{{template "base" .}}
+{{end}}
+
+{{define "content"}}
+	<div class="unauthenticated-container">
+		<img class="unauthenticated-img" src="/static/images/ghost-gopher.png" alt="gopher with sheet on the head" />
+		<h1 class="unauthenticated-title">Authentication Required</h1>
+		<p class="unauthenticated-message">You need to be logged in to access this feature. Please sign up for a new account or login with your existing credentials.</p>
+		<div class="inline-container">
+			<a href="/auth/signup" class="btn signup">Sign Up</a>
+			<a href="/auth/login" class="btn login">Login</a>
+		</div>
+	</div>
+{{end}}
+
+{{define "head"}}
+	<link rel="stylesheet" href="/static/css/unauthenticated.css">
+{{end}}
+
+{{define "title"}}
+	Authentication Required
+{{end}}

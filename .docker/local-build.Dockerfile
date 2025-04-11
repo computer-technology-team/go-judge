@@ -17,13 +17,17 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Download dependencies
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
 # Copy the source code
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-judge .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-judge .
 
 # Create a runtime image
 FROM ubuntu:22.04
@@ -59,4 +63,3 @@ EXPOSE 8080
 
 # Command to run migrations and then start the application
 ENTRYPOINT ["./docker-entrypoint.sh"]
-
