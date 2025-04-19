@@ -67,7 +67,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("could not create profiles servicer: %w", err)
 	}
 
-	createProblemTemplates, err := templates.GetTemplates(templates.CreateProblem)
+	problemTemplates, err := templates.GetTemplates(templates.Problems)
 	if err != nil {
 		return fmt.Errorf("could not get submit problem templates: %w", err)
 	}
@@ -110,8 +110,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		r.Route("/auth", auth.NewRoutes(authServicer, sharedTemplates))
 
 		// Problem routes
-
-		r.Route("/problems", problems.NewRoutes(problems.NewHandler(createProblemTemplates, pool, querier), sharedTemplates))
+		r.Route("/problems", problems.NewRoutes(problems.NewHandler(problemTemplates, pool, querier), sharedTemplates))
 
 		// Submission routes
 		r.With(middleware.NewRequireAuthMiddleware(sharedTemplates)).

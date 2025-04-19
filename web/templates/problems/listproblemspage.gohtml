@@ -1,0 +1,25 @@
+{{ define "listproblemspage" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "title" }}Problem List{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/listproblems.css">
+{{ end }}
+
+{{ define "content" }}
+<section class="problem-list">
+    <h1>All Problems</h1>
+    <div class="problem-boxes">
+        {{ $problems := .Data }}
+        {{ range $problems }}
+        <div class="problem-box">
+            <h2><a href="/problems/{{ .ID }}">{{ .Title }}</a></h2>
+            <p class="description">{{ .Description }}</p>
+        </div>
+        {{ end }}
+    </div>
+</section>
+
+{{ end }}

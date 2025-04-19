@@ -1,0 +1,32 @@
+{{ define "viewproblempage" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "title" }}Go Problem{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/viewproblem.css">
+{{ end }}
+
+{{ define "content" }}
+<section class="problem-details">
+    <div class="detail-group">
+        <h1>{{ .Data.Title }}</h1>
+        
+        <p>{{ .Data.Description }}</p>
+    </div>
+    <div class="detail-group">
+        <h3>Sample Input</h3>
+        <pre class="sample-section">{{ .Data.SampleInput }}</pre>
+    </div>
+    <div class="detail-group">
+        <h3>Sample Output</h3>
+        <pre class="sample-section">{{ .Data.SampleOutput }}</pre>
+    </div>
+    <div class="detail-group">
+        <h3>Limits</h3>
+        <p>Time Limit: {{ .Data.TimeLimitMs }} seconds <br> Memory Limit: {{ .Data.MemoryLimitKb }} KB</p>
+    </div>
+</section>
+
+{{ end }}

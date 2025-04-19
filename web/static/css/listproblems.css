@@ -1,0 +1,70 @@
+.problem-list {
+    margin: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.problem-list h1 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.problem-list ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.problem-list li {
+    margin-bottom: 15px;
+}
+
+.problem-list h2 {
+    font-size: 18px;
+    margin: 0;
+}
+
+.problem-list p {
+    font-size: 14px;
+    color: #555;
+}
+
+.description {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.problem-boxes {
+    display: flex;
+    flex-direction: column; /* Stack boxes vertically */
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.problem-box {
+    width: 100%; /* Make each box span the full width */
+    max-width: 100%; /* Ensure no unintended shrinking */
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.problem-box h2 {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+}
+
+.problem-box .description {
+    font-size: 0.9rem;
+    color: #555;
+    display: -webkit-box;
+    line-clamp: 3;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
