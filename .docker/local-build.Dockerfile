@@ -13,11 +13,20 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 
-RUN go mod download
+# Download dependencies
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
+
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-judge .
+
+# Build the application
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-judge .
+
 
 FROM ubuntu:22.04
 
@@ -42,6 +51,5 @@ RUN chmod +x /app/scripts/*.sh
 
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
-
 
 ENTRYPOINT ["./judge.docker-entrypoint.sh"]

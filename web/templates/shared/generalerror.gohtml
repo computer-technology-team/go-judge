@@ -1,0 +1,20 @@
+{{define "generalerror" }}
+	{{template "base" .}}
+{{end}}
+
+{{define "content"}}
+	<div class="generalerror-container">
+		<img class="generalerror-img" src="/static/images/error-this-is-fine.png" alt="gopher this is fine meme" />
+		<h1 class="generalerror-title">{{ .Data.Title }}</h1>
+		<p class="generalerror-message">{{ .Data.Message }}</p>
+		<a href="/home" class="btn">Return to Home</a>
+	</div>
+{{end}}
+
+{{define "head"}}
+	<link rel="stylesheet" href="/static/css/generalerror.css">
+{{end}}
+
+{{define "title"}}
+	{{ .Data.Title }}
+{{end}}

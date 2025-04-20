@@ -1,0 +1,20 @@
+{{define "unauthorizederror" }}
+	{{template "base" .}}
+{{end}}
+
+{{define "content"}}
+	<div class="unauthorizederror-container">
+		<img class="unauthorizederror-img" src="/static/images/error-gopher-no.png" alt="gopher with no sign" />
+		<h1 class="unauthorizederror-title">Unauthorized Access</h1>
+		<p class="unauthorizederror-message">You need 'Super User' level authorization for this action</p>
+		<a href="/home" class="btn">Return to Home</a>
+	</div>
+{{end}}
+
+{{define "head"}}
+	<link rel="stylesheet" href="/static/css/unauthorizederror.css">
+{{end}}
+
+{{define "title"}}
+	Unauthorized Access
+{{end}}
