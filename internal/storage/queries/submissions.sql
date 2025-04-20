@@ -11,6 +11,6 @@ RETURNING *;
 
 -- name: RetrySubmissionDueToInternalError :one
 UPDATE submissions
-SET retries = retires + 1
+SET retries = retries + 1
 WHERE id = $1
 RETURNING *;

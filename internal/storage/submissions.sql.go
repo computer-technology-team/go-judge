@@ -42,7 +42,7 @@ func (q *Queries) CreateSubmission(ctx context.Context, db DBTX, arg CreateSubmi
 
 const retrySubmissionDueToInternalError = `-- name: RetrySubmissionDueToInternalError :one
 UPDATE submissions
-SET retries = retires + 1
+SET retries = retries + 1
 WHERE id = $1
 RETURNING id, problem_id, user_id, solution_code, status, created_at, last_modified, message, retries
 `

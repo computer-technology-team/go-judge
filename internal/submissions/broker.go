@@ -382,7 +382,7 @@ func streamToIter(
 				if errors.Is(err, io.EOF) {
 					return
 				}
-				slog.Error("error happened in receiving update event")
+				slog.Error("error happened in receiving update event", "error", err)
 				return
 			}
 
