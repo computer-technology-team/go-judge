@@ -1,14 +1,24 @@
 version: "3.8"
+
+configs:
+  app_config:
+    file: ./configs/config.yaml
+
 services:
-  app:
+  judge:
     build:
       context: .
       dockerfile: .docker/local-build.Dockerfile
+    entrypoint: /app/scripts/judge.docker-entrypoint.sh
     pull_policy: build
     ports:
       - "8080:8080"
     depends_on:
       - postgres
+      - runner
+    configs:
+      - source: app_config
+        target: /app/configs/config.yaml
     environment:
       - DATABASE__HOST=postgres
       - DATABASE__PORT=5432
@@ -17,7 +27,32 @@ services:
       - DATABASE__NAME=gojudge
     restart: unless-stopped
     networks:
-      - gojudge-network
+      - runner-network
+      - db-network
+
+  runner:
+    build:
+      context: .
+      dockerfile: .docker/local-build.Dockerfile
+    entrypoint: /app/scripts/runner.docker-entrypoint.sh
+    pull_policy: build
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    configs:
+      - source: app_config
+        target: /app/configs/config.yaml
+    deploy:
+      replicas: 3
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:8888"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - runner-network
+
   postgres:
     image: postgres:16
     environment:
@@ -28,10 +63,14 @@ services:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
-      - gojudge-network
+      - db-network
+
 networks:
-  gojudge-network:
+  db-network:
     driver: bridge
+  runner-network:
+    driver: bridge
+
 volumes:
   postgres-data:
     driver: local

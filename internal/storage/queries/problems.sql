@@ -3,6 +3,11 @@ SELECT *
 FROM problems
 ORDER BY created_at DESC;
 
+-- name: GetProblemByID :one
+SELECT *
+FROM problems
+WHERE id = $1;
+
 -- name: InsertProblem :one
 INSERT INTO problems (
     title,

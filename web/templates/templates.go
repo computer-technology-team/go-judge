@@ -22,9 +22,10 @@ const (
 	Profiles       PackageName = "profiles"
 	CreateProblem  PackageName = "problems"
 	Authentication PackageName = "authentication"
+	Submissions    PackageName = "submissions"
 )
 
-//go:embed shared/*.gohtml shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml problems/*.gohtml
+//go:embed shared/*.gohtml shared/layouts/*.gohtml shared/partials/*.gohtml home/*.gohtml profiles/*.gohtml authentication/*.gohtml problems/*.gohtml submissions/*.gohtml
 var templateFS embed.FS
 
 // Templates holds all parsed templates

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/computer-technology-team/go-judge/config"
-	"github.com/computer-technology-team/go-judge/internal/auth"
+	authenticatorPkg "github.com/computer-technology-team/go-judge/internal/auth/authenticator"
 )
 
 func NewGenerateTokenCmd() *cobra.Command {
@@ -28,7 +28,7 @@ func NewGenerateTokenCmd() *cobra.Command {
 				return fmt.Errorf("could not load config: %w", err)
 			}
 
-			authenticator, err := auth.NewAuthenticator(cfg.Authentication)
+			authenticator, err := authenticatorPkg.NewAuthenticator(cfg.Authentication)
 			if err != nil {
 				return fmt.Errorf("could not create authenticator: %w", err)
 			}
@@ -37,7 +37,7 @@ func NewGenerateTokenCmd() *cobra.Command {
 				return fmt.Errorf("user id is not uuid: %w", err)
 			}
 
-			token, _, err := authenticator.GenerateToken(ctx, auth.Claims{UserID: userID})
+			token, _, err := authenticator.GenerateToken(ctx, authenticatorPkg.Claims{UserID: userID})
 			if err != nil {
 				return fmt.Errorf("failed to generate token: %w", err)
 			}

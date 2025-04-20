@@ -1,0 +1,234 @@
+/* Submit page styles */
+.submit-container {
+	max-width: 1000px;
+	margin: 0 auto;
+	padding: 20px 0;
+}
+
+.problem-header {
+	margin-bottom: 20px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.problem-header h1 {
+	margin-bottom: 10px;
+	font-size: 24px;
+	color: var(--text-color);
+}
+
+.problem-limits {
+	display: flex;
+	gap: 20px;
+	font-size: 14px;
+	color: var(--text-color);
+}
+
+.limit {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	background-color: white;
+	border-radius: 4px;
+	border: 1px solid var(--border-color);
+}
+
+.memory-limit::before {
+	content: "💾";
+	margin-right: 5px;
+}
+
+.time-limit::before {
+	content: "⏱️";
+	margin-right: 5px;
+}
+
+.submission-form {
+	background-color: white;
+	border-radius: 0.375rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	padding: 20px;
+}
+
+.form-group {
+	margin-bottom: 20px;
+}
+
+.form-group label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+/* CodeMirror customizations */
+.CodeMirror {
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	font-size: 14px;
+	height: 400px;
+}
+
+.form-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 20px;
+}
+
+/* Note: The main button styles are already defined in main.css */
+/* Submit page styles */
+.submit-container {
+	max-width: 1000px;
+	margin: 0 auto;
+	padding: 20px 0;
+}
+
+.problem-header {
+	margin-bottom: 20px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.problem-header h1 {
+	margin-bottom: 10px;
+	font-size: 24px;
+	color: var(--text-color);
+}
+
+.problem-limits {
+	display: flex;
+	gap: 20px;
+	font-size: 14px;
+	color: var(--text-color);
+}
+
+.limit {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	background-color: white;
+	border-radius: 4px;
+	border: 1px solid var(--border-color);
+}
+
+.memory-limit::before {
+	content: "💾";
+	margin-right: 5px;
+}
+
+.time-limit::before {
+	content: "⏱️";
+	margin-right: 5px;
+}
+
+.submission-form {
+	background-color: white;
+	border-radius: 0.375rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	padding: 20px;
+}
+
+.form-group {
+	margin-bottom: 20px;
+}
+
+.form-group label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+/* CodeMirror customizations */
+.CodeMirror {
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	font-size: 14px;
+	height: 400px;
+}
+
+.form-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 20px;
+}
+
+/* Note: The main button styles are already defined in main.css */
+/* Submit page styles */
+.submit-container {
+	max-width: 1000px;
+	margin: 0 auto;
+	padding: 20px 0;
+}
+
+.problem-header {
+	margin-bottom: 20px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid #e0e0e0;
+}
+
+.problem-header h1 {
+	margin-bottom: 10px;
+	font-size: 24px;
+	color: #333;
+}
+
+.problem-limits {
+	display: flex;
+	gap: 20px;
+	font-size: 14px;
+	color: #666;
+}
+
+.limit {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	background-color: #f5f5f5;
+	border-radius: 4px;
+}
+
+.memory-limit::before {
+	content: "💾";
+	margin-right: 5px;
+}
+
+.time-limit::before {
+	content: "⏱️";
+	margin-right: 5px;
+}
+
+.submission-form {
+	background-color: #fff;
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	padding: 20px;
+}
+
+.form-group {
+	margin-bottom: 20px;
+}
+
+.form-group label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 600;
+	color: #333;
+}
+
+/* CodeMirror customizations */
+.CodeMirror {
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	font-size: 14px;
+	height: 400px;
+}
+
+.form-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 20px;
+}

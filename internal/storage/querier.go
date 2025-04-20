@@ -12,13 +12,18 @@ import (
 
 type Querier interface {
 	CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
+	CreateSubmission(ctx context.Context, db DBTX, arg CreateSubmissionParams) (Submission, error)
 	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
 	GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem, error)
+	GetProblemByID(ctx context.Context, db DBTX, id int32) (Problem, error)
+	GetTestCasesByProblemID(ctx context.Context, db DBTX, problemID int32) ([]TestCase, error)
 	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
 	InsertProblem(ctx context.Context, db DBTX, arg InsertProblemParams) (Problem, error)
 	InsertTestCase(ctx context.Context, db DBTX, arg InsertTestCaseParams) (TestCase, error)
+	RetrySubmissionDueToInternalError(ctx context.Context, db DBTX, id pgtype.UUID) (Submission, error)
 	ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
+	UpdateSubmissionStatus(ctx context.Context, db DBTX, arg UpdateSubmissionStatusParams) (Submission, error)
 }
 
 var _ Querier = (*Queries)(nil)

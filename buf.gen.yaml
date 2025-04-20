@@ -1,0 +1,16 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/computer-technology-team/go-judge/api/gen
+    except:
+      - buf.build/googleapis/googleapis
+plugins:
+  - plugin: buf.build/protocolbuffers/go
+    out: api/gen
+    opt:
+      - paths=source_relative
+  - plugin: buf.build/grpc/go
+    out: api/gen
+    opt:
+      - paths=source_relative

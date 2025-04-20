@@ -1,6 +1,8 @@
+/* Profile page specific styles */
 .profile-container {
 	max-width: 800px;
 	margin: 0 auto;
+	padding: 0 1rem;
 }
 
 .profile-header {
@@ -9,7 +11,7 @@
 
 .profile-card {
 	background-color: white;
-	border-radius: 0.5rem;
+	border-radius: 0.375rem;
 	padding: 2rem;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -17,6 +19,7 @@
 .profile-info h2 {
 	color: var(--primary-color);
 	margin-bottom: 1rem;
+	font-weight: 600;
 }
 
 .admin-controls {
@@ -28,14 +31,15 @@
 .admin-controls h3 {
 	color: var(--text-color);
 	margin-bottom: 1rem;
+	font-weight: 600;
 }
 
 .superuser-toggle {
-	background-color: #f8fafc;
+	background-color: var(--background-color);
 	padding: 1.25rem;
-	border-radius: 0.5rem;
+	border-radius: 0.375rem;
 	margin-bottom: 1.25rem;
-	border: 1px solid #e2e8f0;
+	border: 1px solid var(--border-color);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -47,24 +51,26 @@
 
 .status-enabled {
 	color: var(--success-color);
-	font-weight: bold;
+	font-weight: 600;
 }
 
 .status-disabled {
 	color: var(--error-color);
-	font-weight: bold;
+	font-weight: 600;
 }
 
 .btn-admin {
-	background-color: #f3f4f6;
-	color: #374151;
-	border: 2px solid #d1d5db;
+	display: inline-block;
+	background-color: var(--background-color);
+	color: var(--text-color);
+	border: 1px solid var(--border-color);
 	border-radius: 0.375rem;
 	padding: 0.5rem 1rem;
 	font-weight: 500;
 	margin-top: 0.75rem;
 	transition: all 0.2s ease;
 	cursor: pointer;
+	text-decoration: none;
 }
 
 .btn-admin:hover {
