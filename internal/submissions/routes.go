@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
-	"github.com/computer-technology-team/go-judge/internal/middleware"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 	"github.com/computer-technology-team/go-judge/web/templates"
 )
@@ -28,7 +27,6 @@ type Servicer interface {
 // This allows for dependency injection when setting up routes
 func NewRoutes(s Servicer) func(r chi.Router) {
 	return func(r chi.Router) {
-		r.Use(middleware.RequireAuth)
 		r.Get("/", s.ListSubmissions)
 		r.Get("/problem/{problem_id}/new", s.SubmissionForm)
 		r.Post("/", s.CreateSubmission)

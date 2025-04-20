@@ -75,6 +75,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	submissionsServicer, err := createSubmissionsServicer(broker, pool, querier)
 	if err != nil {
 		return fmt.Errorf("could not create submission servicer: %w", err)
+	}
 
 	sharedTemplates, err := templates.GetSharedTemplates()
 	if err != nil {
@@ -106,15 +107,14 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	// API routes
 	router.Route("/", func(r chi.Router) {
 		// Auth routes
-		r.Route("/auth", auth.NewRoutes(authServicer))
+		r.Route("/auth", auth.NewRoutes(authServicer, sharedTemplates))
 
 		// Problem routes
 
 		r.Route("/problems", problems.NewRoutes(problems.NewHandler(createProblemTemplates, pool, querier), sharedTemplates))
 
-
 		// Submission routes
-		r.With(middleware.RequireAuth).
+		r.With(middleware.NewRequireAuthMiddleware(sharedTemplates)).
 			Route("/submissions", submissions.NewRoutes(submissionsServicer))
 
 		// Profile routes
