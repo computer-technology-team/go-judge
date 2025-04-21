@@ -29,4 +29,6 @@ config.yaml
 # Binary in the root directory
 /go-judge
 
+# Ignore the builds directory
+runner/builds/
 
