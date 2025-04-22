@@ -20,7 +20,7 @@ type PackageName string
 const (
 	Home           PackageName = "home"
 	Profiles       PackageName = "profiles"
-	CreateProblem  PackageName = "problems"
+	Problems       PackageName = "problems"
 	Authentication PackageName = "authentication"
 	Submissions    PackageName = "submissions"
 )
