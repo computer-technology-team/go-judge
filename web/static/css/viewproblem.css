@@ -1,10 +1,17 @@
+/* Problem Details Container */
 .problem-details {
     max-width: 900px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 2rem 1.5rem;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: left;
+    background-color: white;
+    margin-bottom: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
 }
 
+/* Problem Header */
 .problem-header {
     display: flex;
     justify-content: space-between;
@@ -23,6 +30,7 @@
     color: var(--secondary-color);
 }
 
+/* Limits Section */
 .limits-section {
     display: flex;
     flex-direction: column;
@@ -54,68 +62,7 @@
     font-family: 'Courier New', monospace;
 }
 
-.detail-group {
-    margin-bottom: 24px;
-}
-
-.detail-group h3 {
-    color: var(--secondary-color);
-    margin-bottom: 12px;
-    font-size: 1.2rem;
-}
-
-.sample-section {
-    background-color: #f5f5f5;
-    padding: 12px;
-    border-radius: 6px;
-    overflow-x: auto;
-    font-family: 'Courier New', monospace;
-    border: 1px solid #e0e0e0;
-}
-
-.submit-section {
-    margin-top: 32px;
-    text-align: center;
-}
-
-.submit-button {
-    display: inline-block;
-    background-color: var(--primary-color);
-    color: white !important;
-    padding: 12px 24px;
-    border-radius: 6px;
-    text-decoration: none !important;
-    font-weight: 600;
-    border: none !important;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.submit-button:hover {
-    background-color: var(--secondary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-@media (max-width: 768px) {
-    .problem-header {
-        flex-direction: column;
-    }
-    
-    .limits-section {
-        margin-top: 16px;
-        width: 100%;
-    }
-}
-.problem-details {
-    text-align: left;
-    padding: 2rem 1.5rem;
-    background-color: white;
-    margin-bottom: 30px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-}
-
+/* Detail Groups */
 .detail-group {
     margin-bottom: 2rem;
 }
@@ -142,6 +89,7 @@
     overflow-x: auto;
 }
 
+/* Sample Section */
 .sample-section {
     font-family: monospace;
     font-size: 0.95rem;
@@ -149,9 +97,80 @@
     padding: 0.75rem;
     border-radius: 5px;
     overflow-x: auto;
+    border: 1px solid #e0e0e0;
 }
 
+/* Action Buttons */
+.action-section {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    align-items: center;
+}
+
+.submit-button {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white !important;
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none !important;
+    font-weight: 600;
+    border: none !important;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:hover {
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Admin Actions */
+.admin-form {
+    margin: 0;
+}
+
+.publish-button,
+.unpublish-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.publish-button {
+    background-color: var(--success-color, #28a745);
+    color: white;
+}
+
+.publish-button:hover {
+    background-color: var(--success-hover-color, #218838);
+}
+
+.unpublish-button {
+    background-color: var(--warning-color, #ffc107);
+    color: #212529;
+}
+
+.unpublish-button:hover {
+    background-color: var(--warning-hover-color, #e0a800);
+}
+
+/* Responsive Styles */
 @media (max-width: 768px) {
+    .problem-header {
+        flex-direction: column;
+    }
+
+    .limits-section {
+        margin-top: 16px;
+        width: 100%;
+    }
+    
     .problem-details {
         padding: 1.5rem 1rem;
     }
@@ -167,5 +186,10 @@
     .detail-group p,
     .detail-group pre {
         font-size: 0.9rem;
+    }
+    
+    .action-section {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

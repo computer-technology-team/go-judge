@@ -14,15 +14,22 @@ type Querier interface {
 	CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
 	CreateSubmission(ctx context.Context, db DBTX, arg CreateSubmissionParams) (Submission, error)
 	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
-	GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]Problem, error)
+	DeleteProblemTestCases(ctx context.Context, db DBTX, problemID int32) error
+	DraftProblem(ctx context.Context, db DBTX, id int32) error
+	GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]GetAllProblemsSortedRow, error)
+	GetAllPublishedProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]Problem, error)
 	GetProblemByID(ctx context.Context, db DBTX, id int32) (Problem, error)
+	GetProblemForUser(ctx context.Context, db DBTX, arg GetProblemForUserParams) (Problem, error)
 	GetTestCasesByProblemID(ctx context.Context, db DBTX, problemID int32) ([]TestCase, error)
 	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
+	GetUserProblemsSorted(ctx context.Context, db DBTX, arg GetUserProblemsSortedParams) ([]Problem, error)
 	InsertProblem(ctx context.Context, db DBTX, arg InsertProblemParams) (Problem, error)
 	InsertTestCase(ctx context.Context, db DBTX, arg InsertTestCaseParams) (TestCase, error)
+	PublishProblem(ctx context.Context, db DBTX, id int32) error
 	RetrySubmissionDueToInternalError(ctx context.Context, db DBTX, id pgtype.UUID) (Submission, error)
 	ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)
+	UpdateProblem(ctx context.Context, db DBTX, arg UpdateProblemParams) (Problem, error)
 	UpdateSubmissionStatus(ctx context.Context, db DBTX, arg UpdateSubmissionStatusParams) (Submission, error)
 }
 

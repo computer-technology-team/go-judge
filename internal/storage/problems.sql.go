@@ -11,16 +11,84 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const draftProblem = `-- name: DraftProblem :exec
+UPDATE problems
+SET draft = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) DraftProblem(ctx context.Context, db DBTX, id int32) error {
+	_, err := db.Exec(ctx, draftProblem, id)
+	return err
+}
+
 const getAllProblemsSorted = `-- name: GetAllProblemsSorted :many
-SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
-FROM problems
-ORDER BY created_at DESC
+SELECT problems.id, problems.title, problems.description, problems.sample_input, problems.sample_output, problems.time_limit_ms, problems.memory_limit_kb, problems.created_at, problems.created_by, problems.draft, problems.published_at, users.username as author_name
+FROM problems JOIN users  ON problems.created_by = users.id
+ORDER BY published_at DESC
 LIMIT $1
 OFFSET $2
 `
 
-func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]Problem, error) {
+type GetAllProblemsSortedRow struct {
+	ID            int32              `db:"id" json:"id"`
+	Title         string             `db:"title" json:"title"`
+	Description   string             `db:"description" json:"description"`
+	SampleInput   string             `db:"sample_input" json:"sample_input"`
+	SampleOutput  string             `db:"sample_output" json:"sample_output"`
+	TimeLimitMs   int64              `db:"time_limit_ms" json:"time_limit_ms"`
+	MemoryLimitKb int64              `db:"memory_limit_kb" json:"memory_limit_kb"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	CreatedBy     pgtype.UUID        `db:"created_by" json:"created_by"`
+	Draft         bool               `db:"draft" json:"draft"`
+	PublishedAt   pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	AuthorName    string             `db:"author_name" json:"author_name"`
+}
+
+func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]GetAllProblemsSortedRow, error) {
 	rows, err := db.Query(ctx, getAllProblemsSorted, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllProblemsSortedRow
+	for rows.Next() {
+		var i GetAllProblemsSortedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.SampleInput,
+			&i.SampleOutput,
+			&i.TimeLimitMs,
+			&i.MemoryLimitKb,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.Draft,
+			&i.PublishedAt,
+			&i.AuthorName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllPublishedProblemsSorted = `-- name: GetAllPublishedProblemsSorted :many
+SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by, draft, published_at
+FROM problems
+WHERE draft = false
+ORDER BY published_at DESC
+LIMIT $1
+OFFSET $2
+`
+
+func (q *Queries) GetAllPublishedProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]Problem, error) {
+	rows, err := db.Query(ctx, getAllPublishedProblemsSorted, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +106,8 @@ func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32
 			&i.MemoryLimitKb,
 			&i.CreatedAt,
 			&i.CreatedBy,
+			&i.Draft,
+			&i.PublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -50,7 +120,7 @@ func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32
 }
 
 const getProblemByID = `-- name: GetProblemByID :one
-SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
+SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by, draft, published_at
 FROM problems
 WHERE id = $1
 `
@@ -68,8 +138,88 @@ func (q *Queries) GetProblemByID(ctx context.Context, db DBTX, id int32) (Proble
 		&i.MemoryLimitKb,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.Draft,
+		&i.PublishedAt,
 	)
 	return i, err
+}
+
+const getProblemForUser = `-- name: GetProblemForUser :one
+SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by, draft, published_at
+FROM problems
+WHERE id = $1 and (draft = FALSE or created_by = $2 or $3::BOOLEAN)
+`
+
+type GetProblemForUserParams struct {
+	ID        int32       `db:"id" json:"id"`
+	CreatedBy pgtype.UUID `db:"created_by" json:"created_by"`
+	IsAdmin   bool        `db:"is_admin" json:"is_admin"`
+}
+
+func (q *Queries) GetProblemForUser(ctx context.Context, db DBTX, arg GetProblemForUserParams) (Problem, error) {
+	row := db.QueryRow(ctx, getProblemForUser, arg.ID, arg.CreatedBy, arg.IsAdmin)
+	var i Problem
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.SampleInput,
+		&i.SampleOutput,
+		&i.TimeLimitMs,
+		&i.MemoryLimitKb,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.Draft,
+		&i.PublishedAt,
+	)
+	return i, err
+}
+
+const getUserProblemsSorted = `-- name: GetUserProblemsSorted :many
+SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by, draft, published_at
+FROM problems
+WHERE created_by = $3
+ORDER BY published_at DESC
+LIMIT $1
+OFFSET $2
+`
+
+type GetUserProblemsSortedParams struct {
+	Limit     int32       `db:"limit" json:"limit"`
+	Offset    int32       `db:"offset" json:"offset"`
+	CreatedBy pgtype.UUID `db:"created_by" json:"created_by"`
+}
+
+func (q *Queries) GetUserProblemsSorted(ctx context.Context, db DBTX, arg GetUserProblemsSortedParams) ([]Problem, error) {
+	rows, err := db.Query(ctx, getUserProblemsSorted, arg.Limit, arg.Offset, arg.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Problem
+	for rows.Next() {
+		var i Problem
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.SampleInput,
+			&i.SampleOutput,
+			&i.TimeLimitMs,
+			&i.MemoryLimitKb,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.Draft,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertProblem = `-- name: InsertProblem :one
@@ -83,7 +233,7 @@ INSERT INTO problems (
     created_by
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
+RETURNING id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by, draft, published_at
 `
 
 type InsertProblemParams struct {
@@ -117,6 +267,69 @@ func (q *Queries) InsertProblem(ctx context.Context, db DBTX, arg InsertProblemP
 		&i.MemoryLimitKb,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.Draft,
+		&i.PublishedAt,
+	)
+	return i, err
+}
+
+const publishProblem = `-- name: PublishProblem :exec
+UPDATE problems
+SET draft = FALSE, published_at = now()
+WHERE id = $1
+`
+
+func (q *Queries) PublishProblem(ctx context.Context, db DBTX, id int32) error {
+	_, err := db.Exec(ctx, publishProblem, id)
+	return err
+}
+
+const updateProblem = `-- name: UpdateProblem :one
+UPDATE problems
+SET
+    title = $2,
+    description = $3,
+    sample_input = $4,
+    sample_output = $5,
+    time_limit_ms = $6,
+    memory_limit_kb = $7
+WHERE id = $1
+RETURNING id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by, draft, published_at
+`
+
+type UpdateProblemParams struct {
+	ID            int32  `db:"id" json:"id"`
+	Title         string `db:"title" json:"title"`
+	Description   string `db:"description" json:"description"`
+	SampleInput   string `db:"sample_input" json:"sample_input"`
+	SampleOutput  string `db:"sample_output" json:"sample_output"`
+	TimeLimitMs   int64  `db:"time_limit_ms" json:"time_limit_ms"`
+	MemoryLimitKb int64  `db:"memory_limit_kb" json:"memory_limit_kb"`
+}
+
+func (q *Queries) UpdateProblem(ctx context.Context, db DBTX, arg UpdateProblemParams) (Problem, error) {
+	row := db.QueryRow(ctx, updateProblem,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.SampleInput,
+		arg.SampleOutput,
+		arg.TimeLimitMs,
+		arg.MemoryLimitKb,
+	)
+	var i Problem
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.SampleInput,
+		&i.SampleOutput,
+		&i.TimeLimitMs,
+		&i.MemoryLimitKb,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.Draft,
+		&i.PublishedAt,
 	)
 	return i, err
 }

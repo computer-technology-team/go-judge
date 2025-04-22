@@ -9,6 +9,16 @@ import (
 	"context"
 )
 
+const deleteProblemTestCases = `-- name: DeleteProblemTestCases :exec
+DELETE FROM test_cases
+WHERE problem_id = $1
+`
+
+func (q *Queries) DeleteProblemTestCases(ctx context.Context, db DBTX, problemID int32) error {
+	_, err := db.Exec(ctx, deleteProblemTestCases, problemID)
+	return err
+}
+
 const getTestCasesByProblemID = `-- name: GetTestCasesByProblemID :many
 SELECT id, problem_id, input, output
 FROM test_cases

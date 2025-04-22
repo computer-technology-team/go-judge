@@ -1,0 +1,82 @@
+{{ define "listmyproblemspage" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "title" }}My Problems{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/listproblems.css">
+<link rel="stylesheet" href="/static/css/listmyproblems.css">
+{{ end }}
+
+{{ define "content" }}
+<section class="problem-list">
+    <div class="problem-header">
+        {{ if .User.Superuser }}
+        <h1>All Problems</h1>
+        <p>As a superuser, you can manage all problems in the system.</p>
+        {{ else }}
+        <h1>My Problems</h1>
+        <p>Manage the problems you've created. You can edit your problems or create new ones.</p>
+        {{ end }}
+        <a href="/problems/form/new" class="create-problem-btn">Create New Problem</a>
+    </div>
+    <div class="problem-boxes">
+        {{ $problems := .Data.Problems }}
+        {{ if eq (len $problems) 0 }}
+            <div class="no-problems">
+                <p>No problems found.</p>
+                <p>Click the "Create New Problem" button to get started.</p>
+            </div>
+        {{ else }}
+            {{ range $problems }}
+            <div class="problem-box">
+                <h2>
+                    {{ .Title }}
+                    {{ if .Draft }}
+                    <span class="draft-badge">Draft</span>
+                    {{ end }}
+                </h2>
+                <div class="problem-meta">
+                    <span class="problem-author">Author: {{ .AuthorName }}</span>
+                </div>
+                <div class="problem-limits">
+                    <span class="limit time-limit">Time: {{ .TimeLimitMs }}ms</span>
+                    <span class="limit memory-limit">Memory: {{ .MemoryLimitKb }}KB</span>
+                </div>
+
+                <div class="problem-actions">
+                    <a href="/problems/{{ .ID }}" class="view-btn">View Problem</a>
+					{{ if eq $.User.ID .CreatedBy }}
+                    <a href="/problems/form/{{ .ID }}" class="edit-btn">Edit Problem</a>
+					{{ end }}
+                    {{ if $.User.Superuser }}
+                    <form method="POST" action="/problems/{{ .ID }}/toggle-status" class="toggle-form">
+                        <input type="hidden" name="_method" value="PUT">
+                        <button type="submit" class="toggle-btn {{ if .Draft }}publish-btn{{ else }}unpublish-btn{{ end }}">
+                            {{ if .Draft }}Publish{{ else }}Unpublish{{ end }}
+                        </button>
+                    </form>
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+        {{ end }}
+    </div>
+    <div class="pagination">
+        {{ if gt .Data.CurrentPage 1 }}
+            <a href="/problems/my?page={{ sub .Data.CurrentPage 1 }}&pageSize={{ .Data.PageSize }}" class="pagination-btn prev-btn">Previous Page</a>
+        {{ else }}
+            <span class="pagination-btn prev-btn disabled">Previous Page</span>
+        {{ end }}
+        
+        <span class="page-info">Page {{ .Data.CurrentPage }}</span>
+        
+        {{ if and (gt (len $problems) 0) (eq (len $problems) .Data.PageSize) }}
+            <a href="/problems/my?page={{ add .Data.CurrentPage 1 }}&pageSize={{ .Data.PageSize }}" class="pagination-btn next-btn">Next Page</a>
+        {{ else }}
+            <span class="pagination-btn next-btn disabled">Next Page</span>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
