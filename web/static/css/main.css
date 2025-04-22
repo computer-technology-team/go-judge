@@ -564,6 +564,36 @@ input[type="button"]:disabled {
   box-shadow: none;
 }
 
+/* Heading styles */
+h1, h2 {
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+h1::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+}
+
 /* Utility classes */
 .inline-container {
   display: flex;

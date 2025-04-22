@@ -3,9 +3,16 @@
     font-family: Arial, sans-serif;
 }
 
+.problem-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .problem-list h1 {
     font-size: 24px;
-    margin-bottom: 10px;
+    margin: 0;
 }
 
 .problem-list ul {
@@ -43,6 +50,17 @@
     margin-top: 20px;
 }
 
+.problem-box-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.problem-box-link:hover {
+    transform: translateY(-2px);
+}
+
 .problem-box {
     width: 100%; /* Make each box span the full width */
     max-width: 100%; /* Ensure no unintended shrinking */
@@ -51,11 +69,47 @@
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.problem-box-link:hover .problem-box {
+    background-color: #f0f8ff;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 8px rgba(0, 173, 216, 0.2);
 }
 
 .problem-box h2 {
-    margin: 0 0 8px;
+    margin: 0 0 12px;
     font-size: 1.25rem;
+    color: var(--secondary-color);
+}
+
+.problem-limits {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.limit {
+    font-size: 0.85rem;
+    color: #666;
+    background-color: rgba(0, 173, 216, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.time-limit::before {
+    content: "⏱️";
+    margin-right: 4px;
+    font-size: 0.9rem;
+}
+
+.memory-limit::before {
+    content: "💾";
+    margin-right: 4px;
+    font-size: 0.9rem;
 }
 
 .problem-box .description {
@@ -67,4 +121,66 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.create-problem-btn {
+    display: inline-block;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.create-problem-btn:hover {
+    background-color: #45a049;
+}
+
+/* Pagination styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+    gap: 15px;
+}
+
+.pagination-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.pagination-btn:hover {
+    background-color: #45a049;
+}
+
+.pagination-btn.disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #555;
+    font-weight: bold;
+}
+
+.no-problems {
+    text-align: center;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    color: #666;
+    font-style: italic;
 }

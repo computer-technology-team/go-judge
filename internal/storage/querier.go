@@ -14,7 +14,7 @@ type Querier interface {
 	CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
 	CreateSubmission(ctx context.Context, db DBTX, arg CreateSubmissionParams) (Submission, error)
 	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
-	GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem, error)
+	GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]Problem, error)
 	GetProblemByID(ctx context.Context, db DBTX, id int32) (Problem, error)
 	GetTestCasesByProblemID(ctx context.Context, db DBTX, problemID int32) ([]TestCase, error)
 	GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, error)

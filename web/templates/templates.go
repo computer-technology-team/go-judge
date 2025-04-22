@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/Masterminds/sprig/v3"
+
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 )
@@ -107,7 +109,7 @@ func GetTemplates(pkg PackageName) (*Templates, error) {
 	for _, page := range slices.Concat(shared, pkgTemplates) {
 		name := fileNameWithoutExt(page)
 
-		tmpl := template.New(name)
+		tmpl := template.New(name).Funcs(sprig.FuncMap())
 
 		allTemplates := append(sharedTemplates, page)
 		tmpl, err = tmpl.ParseFS(templateFS, allTemplates...)

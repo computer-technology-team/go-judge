@@ -1,4 +1,113 @@
 .problem-details {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.problem-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.title-section {
+    flex: 1;
+}
+
+.title-section h1 {
+    margin: 0;
+    color: var(--secondary-color);
+}
+
+.limits-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background-color: #f5f9ff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.limit {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.limit-icon {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+.limit-label {
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.limit-value {
+    font-family: 'Courier New', monospace;
+}
+
+.detail-group {
+    margin-bottom: 24px;
+}
+
+.detail-group h3 {
+    color: var(--secondary-color);
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+.sample-section {
+    background-color: #f5f5f5;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    border: 1px solid #e0e0e0;
+}
+
+.submit-section {
+    margin-top: 32px;
+    text-align: center;
+}
+
+.submit-button {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white !important;
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none !important;
+    font-weight: 600;
+    border: none !important;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:hover {
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+    .problem-header {
+        flex-direction: column;
+    }
+    
+    .limits-section {
+        margin-top: 16px;
+        width: 100%;
+    }
+}
+.problem-details {
     text-align: left;
     padding: 2rem 1.5rem;
     background-color: white;

@@ -15,10 +15,12 @@ const getAllProblemsSorted = `-- name: GetAllProblemsSorted :many
 SELECT id, title, description, sample_input, sample_output, time_limit_ms, memory_limit_kb, created_at, created_by
 FROM problems
 ORDER BY created_at DESC
+LIMIT $1
+OFFSET $2
 `
 
-func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX) ([]Problem, error) {
-	rows, err := db.Query(ctx, getAllProblemsSorted)
+func (q *Queries) GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]Problem, error) {
+	rows, err := db.Query(ctx, getAllProblemsSorted, limit, offset)
 	if err != nil {
 		return nil, err
 	}

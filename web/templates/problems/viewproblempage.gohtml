@@ -10,22 +10,41 @@
 
 {{ define "content" }}
 <section class="problem-details">
+    <div class="problem-header">
+        <div class="title-section">
+            <h1>{{ .Data.Title }}</h1>
+        </div>
+        <div class="limits-section">
+            <div class="limit time-limit">
+                <span class="limit-icon">⏱️</span>
+                <span class="limit-label">Time Limit:</span>
+                <span class="limit-value">{{ .Data.TimeLimitMs }}ms</span>
+            </div>
+            <div class="limit memory-limit">
+                <span class="limit-icon">💾</span>
+                <span class="limit-label">Memory Limit:</span>
+                <span class="limit-value">{{ .Data.MemoryLimitKb }}KB</span>
+            </div>
+        </div>
+    </div>
+    
     <div class="detail-group">
-        <h1>{{ .Data.Title }}</h1>
-        
+
         <p>{{ .Data.Description }}</p>
     </div>
+    
     <div class="detail-group">
         <h3>Sample Input</h3>
         <pre class="sample-section">{{ .Data.SampleInput }}</pre>
     </div>
+    
     <div class="detail-group">
         <h3>Sample Output</h3>
         <pre class="sample-section">{{ .Data.SampleOutput }}</pre>
     </div>
-    <div class="detail-group">
-        <h3>Limits</h3>
-        <p>Time Limit: {{ .Data.TimeLimitMs }} seconds <br> Memory Limit: {{ .Data.MemoryLimitKb }} KB</p>
+    
+    <div class="submit-section">
+        <a href="/submissions/problem/{{ .Data.ID }}/new" class="submit-button">Submit Solution</a>
     </div>
 </section>
 

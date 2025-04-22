@@ -10,14 +10,43 @@
 
 {{ define "content" }}
 <section class="problem-list">
-    <h1>All Problems</h1>
+    <div class="problem-header">
+        <h1>Problems</h1>
+        <a href="/problems/create" class="create-problem-btn">Create New Problem</a>
+    </div>
     <div class="problem-boxes">
-        {{ $problems := .Data }}
-        {{ range $problems }}
-        <div class="problem-box">
-            <h2><a href="/problems/{{ .ID }}">{{ .Title }}</a></h2>
-            <p class="description">{{ .Description }}</p>
-        </div>
+        {{ $problems := .Data.Problems }}
+        {{ if eq (len $problems) 0 }}
+            <div class="no-problems">
+                <p>No problems found.</p>
+            </div>
+        {{ else }}
+            {{ range $problems }}
+            <a href="/problems/{{ .ID }}" class="problem-box-link">
+                <div class="problem-box">
+                    <h2>{{ .Title }}</h2>
+                    <div class="problem-limits">
+                        <span class="limit time-limit">Time: {{ .TimeLimitMs }}ms</span>
+                        <span class="limit memory-limit">Memory: {{ .MemoryLimitKb }}KB</span>
+                    </div>
+                </div>
+            </a>
+            {{ end }}
+        {{ end }}
+    </div>
+    <div class="pagination">
+        {{ if gt .Data.CurrentPage 1 }}
+            <a href="/problems?page={{ sub .Data.CurrentPage 1 }}&pageSize={{ .Data.PageSize }}" class="pagination-btn prev-btn">Previous Page</a>
+        {{ else }}
+            <span class="pagination-btn prev-btn disabled">Previous Page</span>
+        {{ end }}
+        
+        <span class="page-info">Page {{ .Data.CurrentPage }}</span>
+        
+        {{ if and (gt (len $problems) 0) (eq (len $problems) .Data.PageSize) }}
+            <a href="/problems?page={{ add .Data.CurrentPage 1 }}&pageSize={{ .Data.PageSize }}" class="pagination-btn next-btn">Next Page</a>
+        {{ else }}
+            <span class="pagination-btn next-btn disabled">Next Page</span>
         {{ end }}
     </div>
 </section>

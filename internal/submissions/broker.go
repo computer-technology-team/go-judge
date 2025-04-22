@@ -149,7 +149,10 @@ func (b *broker) startWorker(ctx context.Context) {
 		defer b.workerWg.Done()
 		for {
 			select {
-			case job := <-b.jobsChan:
+			case job, ok := <-b.jobsChan:
+				if !ok {
+					return
+				}
 				var err error
 				job.submission, err = b.handleJob(ctx, job)
 				if err != nil {

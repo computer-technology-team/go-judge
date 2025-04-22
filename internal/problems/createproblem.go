@@ -47,14 +47,14 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	// Validate required fields
 	if title == "" || description == "" || sampleInput == "" || sampleOutput == "" {
 		slog.Error("missing required fields")
-		http.Error(w, "title, description, sample input, and sample output are required", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "title, description, sample input, and sample output are required", http.StatusBadRequest, h.templates)
 		return
 	}
 
 	// Validate at least one test case exists
 	if len(testCases) == 0 {
 		slog.Error("no test cases provided")
-		http.Error(w, "at least one test case is required", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "at least one test case is required", http.StatusBadRequest, h.templates)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	timeLimitInt, err := strconv.Atoi(timeLimit)
 	if err != nil || timeLimitInt <= 0 {
 		slog.Error("invalid time limit", "error", err)
-		http.Error(w, "invalid or missing time limit", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "invalid or missing time limit", http.StatusBadRequest, h.templates)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	memoryLimitInt, err := strconv.Atoi(memoryLimit)
 	if err != nil || memoryLimitInt <= 0 {
 		slog.Error("invalid memory limit", "error", err)
-		http.Error(w, "invalid or missing memory limit", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "invalid or missing memory limit", http.StatusBadRequest, h.templates)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	tx, err := h.pool.Begin(ctx)
 	if err != nil {
 		slog.Error("could not begin transaction", "error", err)
-		http.Error(w, "could not start saving", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not start saving", http.StatusInternalServerError, h.templates)
 		return
 	}
 
@@ -102,7 +102,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("could not insert problem", "error", err)
-		http.Error(w, "could not insert problem", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not insert problem", http.StatusInternalServerError, h.templates)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("could not insert test case", "error", err)
-			http.Error(w, "could not insert test case", http.StatusInternalServerError)
+			templates.RenderError(r.Context(), w, "could not insert test case", http.StatusInternalServerError, h.templates)
 			return
 		}
 	}
@@ -123,7 +123,7 @@ func (h *DefaultHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	err = tx.Commit(ctx)
 	if err != nil {
 		slog.Error("could not commit transaction", "error", err)
-		http.Error(w, "could not finalize save", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not finalize save", http.StatusInternalServerError, h.templates)
 		return
 	}
 

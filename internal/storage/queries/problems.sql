@@ -1,7 +1,9 @@
 -- name: GetAllProblemsSorted :many
 SELECT *
 FROM problems
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $1
+OFFSET $2;
 
 -- name: GetProblemByID :one
 SELECT *
