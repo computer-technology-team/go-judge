@@ -1,3 +1,21 @@
+FROM alpine:latest AS code-executer
+
+RUN apk add --no-cache coreutils
+
+RUN adduser -D appuser
+
+WORKDIR /app
+
+RUN chown -R appuser:appuser /app
+
+COPY executer.docker-entrypoint.sh /executer.docker-entrypoint.sh
+
+RUN chmod +x /entrypoint.sh && chown appuser:appuser /entrypoint.sh
+
+USER appuser
+
+ENTRYPOINT ["/bin/sh", "/executer.docker-entrypoint.sh"]
+
 FROM golang:1.23 AS builder
 
 RUN apt-get update && apt-get install -y \
