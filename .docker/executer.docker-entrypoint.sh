@@ -3,7 +3,7 @@
 # Check if binary exists
 if [ ! -f "/app/${BINARY_NAME}" ]; then
     echo "Error: Binary /app/${BINARY_NAME} not found"
-    exit 1
+    exit 11
 fi
 
 # Set input and output files
@@ -18,10 +18,10 @@ EXIT_STATUS=$?
 # Check the exit status
 if [ $EXIT_STATUS -eq 124 ]; then
     echo "Error: Process timed out after ${TIME_LIMIT} seconds"
-    exit 1
+    exit 12
 elif [ $EXIT_STATUS -eq 137 ]; then
     echo "Error: Process terminated due to memory limit violation"
-    exit 1
+    exit 10
 elif [ $EXIT_STATUS -ne 0 ]; then
     echo "Process failed with exit code $EXIT_STATUS"
     exit $EXIT_STATUS
