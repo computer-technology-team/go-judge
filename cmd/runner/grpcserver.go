@@ -23,7 +23,22 @@ import (
 func StartServer(ctx context.Context, cfg config.Config) error {
 	grpcServer := grpc.NewServer()
 
-	runnerServer := runner.NewRunnerServer()
+	dir, err := os.MkdirTemp("", "go-runner-utils-*")
+	if err != nil {
+		return fmt.Errorf("could not create util tmp dir: %w", err)
+	}
+
+	defer os.RemoveAll(dir)
+
+	evaluator, err := runner.NewCodeEvaluator(ctx, dir)
+	if err != nil {
+		return fmt.Errorf("could not create code evaluator: %w", err)
+	}
+
+	runnerServer, err := runner.NewRunnerServer(evaluator)
+	if err != nil {
+		return fmt.Errorf("could not create runner server: %w", err)
+	}
 
 	runnerPb.RegisterRunnerServer(grpcServer, runnerServer)
 
