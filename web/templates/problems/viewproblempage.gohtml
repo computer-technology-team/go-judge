@@ -43,9 +43,13 @@
         <pre class="sample-section">{{ .Data.SampleOutput }}</pre>
     </div>
     
-    <div class="submit-section">
-        <a href="/submissions/problem/{{ .Data.ID }}/new" class="submit-button">Submit Solution</a>
+    <div class="action-section">
+        {{ if not .Data.Draft }}
+            <a href="/submissions/problem/{{ .Data.ID }}/new" class="submit-button">Submit Solution</a>
+        {{ end }}
+        
     </div>
+    
 </section>
 
 {{ end }}

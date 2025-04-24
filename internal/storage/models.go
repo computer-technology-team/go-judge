@@ -71,6 +71,8 @@ type Problem struct {
 	MemoryLimitKb int64              `db:"memory_limit_kb" json:"memory_limit_kb"`
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	CreatedBy     pgtype.UUID        `db:"created_by" json:"created_by"`
+	Draft         bool               `db:"draft" json:"draft"`
+	PublishedAt   pgtype.Timestamptz `db:"published_at" json:"published_at"`
 }
 
 type Submission struct {

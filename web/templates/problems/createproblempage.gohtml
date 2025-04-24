@@ -11,40 +11,53 @@
 {{ define "content" }}
 <section class="intro">
     <div class="intro-content">
+        {{ if not .Data }}
         <h1>Create a New Problem</h1>
         <p>
             Use the form below to submit a new problem to Go-Judge. Please ensure all fields are filled out correctly.
         </p>
+        {{ else }}
+        <h1>Edit Problem</h1>
+        <p>
+            Update the problem details below. All fields must be filled out correctly.
+        </p>
+        {{ end }}
     </div>
 </section>
 
 <section class="problem-form">
+    {{ if not .Data }}
     <form id="problem-form" action="/problems" method="post">
+    {{ else }}
+    <form id="problem-form" action="/problems/{{ .Data.Problem.ID }}" method="post">
+        <input type="hidden" name="_method" value="PUT">
+    {{ end }}
         <div class="form-group">
             <label for="title">Problem Title</label>
-            <input type="text" id="title" name="title" required>
+            <input type="text" id="title" name="title" value="{{ if .Data }}{{ .Data.Problem.Title }}{{ end }}" required>
         </div>
         <div class="form-group">
             <label for="description">Problem Description</label>
-            <textarea id="description" name="description" rows="5" required></textarea>
+            <textarea id="description" name="description" rows="5" required>{{ if .Data }}{{ .Data.Problem.Description }}{{ end }}</textarea>
         </div>
         <div class="form-group">
             <label for="input">Sample Input</label>
-            <textarea id="input" name="sample_input" rows="3" required></textarea>
+            <textarea id="input" name="sample_input" rows="3" required>{{ if .Data }}{{ .Data.Problem.SampleInput }}{{ end }}</textarea>
         </div>
         <div class="form-group">
             <label for="output">Sample Output</label>
-            <textarea id="output" name="sample_output" rows="3" required></textarea>
+            <textarea id="output" name="sample_output" rows="3" required>{{ if .Data }}{{ .Data.Problem.SampleOutput }}{{ end }}</textarea>
         </div>
         <div class="form-group">
             <label for="time_limit">Time Limit (seconds)</label>
-            <input type="number" id="time_limit" name="time_limit" min="1" required>
+            <input type="number" id="time_limit" name="time_limit" min="1" value="{{ if .Data }}{{ .Data.Problem.TimeLimitMs }}{{ end }}" required>
         </div>
         <div class="form-group">
             <label for="memory_limit">Memory Limit (KB)</label>
-            <input type="number" id="memory_limit" name="memory_limit" min="1" required>
+            <input type="number" id="memory_limit" name="memory_limit" min="1" value="{{ if .Data }}{{ .Data.Problem.MemoryLimitKb }}{{ end }}" required>
         </div>
         <div id="test-cases">
+            {{ if not .Data }}
             <div class="form-group">
                 <label for="test_input_1">Test Case 1 Input</label>
                 <textarea id="test_input_1" name="test_input_1" rows="3" required></textarea>
@@ -53,15 +66,35 @@
                 <label for="test_output_1">Test Case 1 Output</label>
                 <textarea id="test_output_1" name="test_output_1" rows="3" required></textarea>
             </div>
+            {{ else }}
+                {{ range $index, $testCase := .Data.TestCases }}
+                <div class="form-group">
+                    <label for="test_input_{{ add $index 1 }}">Test Case {{ add $index 1 }} Input</label>
+                    <textarea id="test_input_{{ add $index 1 }}" name="test_input_{{ add $index 1 }}" rows="3" required>{{ $testCase.Input }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="test_output_{{ add $index 1 }}">Test Case {{ add $index 1 }} Output</label>
+                    <textarea id="test_output_{{ add $index 1 }}" name="test_output_{{ add $index 1 }}" rows="3" required>{{ $testCase.Output }}</textarea>
+                </div>
+                {{ end }}
+            {{ end }}
         </div>
         <button type="button" class="btn" onclick="addTestCase()">Add Test Case</button>
         <button type="button" class="btn" onclick="resetTestCases()">Reset Test Cases</button>
+        {{ if not .Data }}
         <button type="submit" class="btn">Submit Problem</button>
+        {{ else }}
+        <button type="submit" class="btn">Update Problem</button>
+        {{ end }}
     </form>
 </section>
 
 <script>
+    {{ if not .Data }}
     let testCaseCount = 1;
+    {{ else }}
+    let testCaseCount = {{ len .Data.TestCases }};
+    {{ end }}
 
     function addTestCase() {
         testCaseCount++;
@@ -83,6 +116,7 @@
     }
 
     function resetTestCases() {
+        {{ if not .Data }}
         const testCasesDiv = document.getElementById('test-cases');
         testCasesDiv.innerHTML = `
             <div class="form-group">
@@ -95,6 +129,11 @@
             </div>
         `;
         testCaseCount = 1;
+        {{ else }}
+        if (confirm("Are you sure you want to reset all test cases? This will remove any unsaved changes.")) {
+            window.location.reload();
+        }
+        {{ end }}
     }
 </script>
 {{ end }}

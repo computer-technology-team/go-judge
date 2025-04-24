@@ -8,13 +8,17 @@
         <nav>
             <ul>
                 <li><a href="/">Home</a></li>
-                <li><a href="/problems">Problems</a></li>
+                <li><a href="/problems">Published Problems</a></li>
                 <li><a href="/submissions">Submissions</a></li>
-                <li><a href="/about">About</a></li>
                 {{ if not .User }}
                 <li><a class="nav-btn nav-btn-primary" href="/auth/signup">Sign Up</a></li>
                 <li><a class="nav-btn nav-btn-secondary" href="/auth/login">Login</a></li>
                 {{ else }}
+
+                <li><a  href="/problems/my">
+                    {{- if .User.Superuser}}All Problems
+                    {{- else }}My Problems{{ end -}}
+                </a></li>
                 <li><a class="nav-btn nav-btn-primary" href="/profiles/{{ .User.Username }}">Profile</a></li>
                 <li><a class="nav-btn nav-btn-secondary" href="/auth/logout">Logout</a></li>
                 {{ end }}
