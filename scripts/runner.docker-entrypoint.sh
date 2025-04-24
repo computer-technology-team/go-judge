@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+#set -e
 
 echo "Starting the runner..."
 exec ./go-judge runner

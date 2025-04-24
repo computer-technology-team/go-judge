@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+#set -e
 
 echo "Running database migrations..."
 ./go-judge migrate
