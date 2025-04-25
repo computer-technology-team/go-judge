@@ -9,18 +9,17 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"math/rand/v2"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/computer-technology-team/go-judge/api/gen/runner"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const utilVolumeName = "go-judge_go-runner-utils"
@@ -44,7 +43,7 @@ func (e *BuildError) Error() string {
 type RunStatus struct {
 	Stdout        string
 	Stderr        string
-	ExitCode      int
+	Status        runner.SubmissionStatusUpdate_Status
 	ExecutionTime time.Duration
 }
 
@@ -95,10 +94,6 @@ func (c *CodeEvaluator) GetCpuCount(ctx context.Context) (int, error) {
 }
 
 func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code string) error {
-	if rand.IntN(3) == 0 {
-		return status.Error(codes.Internal, "random internal")
-	}
-
 	volumeName := fmt.Sprintf("go-judge-volume-%s", submissionID)
 
 	_, err := c.dockerClient.VolumeCreate(ctx, volume.CreateOptions{
@@ -182,6 +177,8 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 
 	inputBuf, outputBuf := byteFileToTar([]byte(testInput), "test_input"), byteFileToTar([]byte(testOutput), "test_output")
 
+	memSize := memorylimitKb * 1024
+
 	resp, err := c.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image:        "ubuntu:22.04",
 		Cmd:          []string{"/utils/spy", "-timeout", strconv.Itoa(int(timelimitMs))},
@@ -208,13 +205,15 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 			},
 		},
 		Resources: container.Resources{
-			Memory:    memorylimitKb * 1024, // Convert KB to bytes
-			CPUCount:  1,
-			CPUPeriod: 100_000,
-			CPUQuota:  100_000, // Equivalent to 1 core (100% of one CPU period)
+			Memory:            memSize, // Convert KB to bytes
+			MemoryReservation: memSize,
+			MemorySwap:        memSize,
+			CPUCount:          1,
+			CPUPeriod:         100_000,
+			CPUQuota:          100_000, // Equivalent to 1 core (100% of one CPU period)
+			OomKillDisable:    &[]bool{false}[0],
 		},
 		NetworkMode: "none",
-		AutoRemove:  true,
 	}, nil, nil, fmt.Sprintf("go-runner-execution-%s", submissionID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create runner container: %w", err)
@@ -284,7 +283,7 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 	status := &RunStatus{
 		Stdout:        stdout.String(),
 		Stderr:        stderr.String(),
-		ExitCode:      exitCode,
+		Status:        c.getStatusCode(stdout.String(), exitCode),
 		ExecutionTime: executionTime,
 	}
 
@@ -318,4 +317,25 @@ func byteFileToTar(content []byte, name string) bytes.Buffer {
 	tw.Close()
 
 	return buf
+}
+
+func (*CodeEvaluator) getStatusCode(stdout string, exitCode int) runner.SubmissionStatusUpdate_Status {
+	if exitCode == 0 {
+		if strings.HasPrefix(stdout, "CORRECT") {
+			return runner.SubmissionStatusUpdate_RUNNING
+		} else {
+			return runner.SubmissionStatusUpdate_WRONG_ANSWER
+		}
+	}
+
+	if strings.HasPrefix(stdout, "RUNTIME ERROR") {
+		return runner.SubmissionStatusUpdate_RUNTIME_ERROR
+	}
+
+	st, ok := exitCodeToStatus[exitCode]
+	if ok {
+		return st
+	}
+
+	return runner.SubmissionStatusUpdate_INTERNAL_ERROR
 }

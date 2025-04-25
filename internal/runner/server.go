@@ -113,17 +113,12 @@ func (rs *runnerServer) ExecuteSubmission(
 		runStatus, err := rs.codeEvaluator.RunTestCase(stream.Context(), request.GetSubmissionId(), tc.GetInput(), tc.GetOutput(), request.GetTimeLimitMs(), request.GetMemoryLimitKb())
 		if err != nil {
 			if errors.Is(err, ErrExecutionFailed) {
-				logger.Info("exection failed", "error", err, "exit_code", runStatus.ExitCode, "stdout", runStatus.Stdout,
+				logger.Info("exection failed", "error", err, "status", runStatus.Status, "stdout", runStatus.Stdout,
 					"stderr", runStatus.Stderr)
-
-				st, ok := exitCodeToStatus[runStatus.ExitCode]
-				if !ok {
-					st = runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR
-				}
 
 				stream.Send(&runnerPb.SubmissionStatusUpdate{
 					SubmissionId:   request.GetSubmissionId(),
-					Status:         st,
+					Status:         runStatus.Status,
 					StatusMessage:  runStatus.Stdout,
 					TestsCompleted: int32(i),
 					TotalTests:     int32(len(request.GetTestCases())),
@@ -131,8 +126,7 @@ func (rs *runnerServer) ExecuteSubmission(
 				})
 
 			} else {
-				logger.Error("run test case failed", "error", err, "exit_code", runStatus.ExitCode, "stdout", runStatus.Stdout,
-					"stderr", runStatus.Stderr)
+				logger.Error("run test case failed", "error", err)
 				stream.Send(&runnerPb.SubmissionStatusUpdate{
 					SubmissionId:   request.GetSubmissionId(),
 					Status:         runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR,
@@ -144,10 +138,19 @@ func (rs *runnerServer) ExecuteSubmission(
 			return nil
 		}
 
+		if runStatus.Status == runnerPb.SubmissionStatusUpdate_WRONG_ANSWER {
+			stream.Send(&runnerPb.SubmissionStatusUpdate{
+				SubmissionId:   request.GetSubmissionId(),
+				Status:         runnerPb.SubmissionStatusUpdate_WRONG_ANSWER,
+				TestsCompleted: int32(i),
+				TotalTests:     int32(len(request.GetTestCases())),
+				MaxTimeSpentMs: maxTimeSpendMs,
+			})
+			return nil
+		}
+
 		maxTimeSpendMs = max(runStatus.ExecutionTime.Milliseconds(), maxTimeSpendMs)
 	}
-
-	logger.Info("submission accepted")
 
 	err = stream.Send(&runnerPb.SubmissionStatusUpdate{
 		SubmissionId:   request.GetSubmissionId(),
