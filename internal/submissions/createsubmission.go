@@ -1,11 +1,13 @@
 package submissions
 
 import (
-	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
-	"github.com/computer-technology-team/go-judge/internal/storage"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
+	"github.com/computer-technology-team/go-judge/internal/storage"
 )
 
 // CreateSubmission creates a new submission
@@ -54,6 +56,8 @@ func (s *ServicerImpl) CreateSubmission(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "could not create submission", http.StatusInternalServerError)
 		return
 	}
+
+	http.Redirect(w, r, fmt.Sprintf("/submissions/%s", submission.ID), http.StatusMovedPermanently)
 
 	go s.broker.AddSubmissionEvaluation(submission)
 }

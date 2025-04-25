@@ -57,7 +57,6 @@
         <a href="/submissions/problem/{{ .ProblemID }}/new" class="btn btn-primary">Submit New Solution</a>
     </div>
 </div>
-{{ end }}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -72,7 +71,14 @@
         });
         
         codeEditor.setSize(null, 400);
+
+        {{ if or (has (.Status | toString) (list "PENDING" "RUNNING")) (and (eq (.Status | toString) "INTERNAL_ERROR") (lt .Retries 3) ) }}
+        setTimeout(function() {
+            window.location.reload();
+        }, 5000);
+        {{ end }}
     });
 </script>
 
+{{ end }}
 {{ end }}

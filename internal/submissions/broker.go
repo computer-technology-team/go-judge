@@ -179,6 +179,10 @@ func (b *broker) startWorker(ctx context.Context) {
 						slog.Error("could not handle retry", "error", err)
 					}
 
+					if job.submission.Retries >= 3 {
+						continue
+					}
+
 					b.addJob(ctx, job)
 				}
 			case <-ctx.Done():
