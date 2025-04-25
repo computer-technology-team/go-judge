@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	_ "embed"
@@ -8,15 +9,15 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/google/uuid"
 )
 
 //go:embed utils/spy.go
@@ -41,15 +42,23 @@ type RunStatus struct {
 	ExecutionTime time.Duration
 }
 
-func NewCodeEvaluator(ctx context.Context, dir string) (*CodeEvaluator, error) {
+func NewCodeEvaluator(ctx context.Context) (*CodeEvaluator, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
 	}
 
-	utilVolumeName := fmt.Sprintf("spy-%d", time.Now().Unix())
+	utilVolumeName := fmt.Sprintf("spy-%s", uuid.NewString())
 
-	resp, err := createSpyContainer(ctx, dir, utilVolumeName, cli)
+	pullResp, err := cli.ImagePull(ctx, "golang:1.23", image.PullOptions{})
+	if pullResp != nil {
+		pullResp.Close()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("could not pull golang:1.23: %w", err)
+	}
+
+	resp, err := createSpyContainer(ctx, utilVolumeName, cli)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +73,7 @@ func NewCodeEvaluator(ctx context.Context, dir string) (*CodeEvaluator, error) {
 	return evaluator, nil
 }
 
-func createSpyContainer(ctx context.Context, dir string, utilVolumeName string, cli *client.Client) (container.CreateResponse, error) {
-	filePath := filepath.Join(dir, "spy.go")
-
-	if err := os.WriteFile(filePath, []byte(spyCode), 0644); err != nil {
-		return container.CreateResponse{}, err
-	}
-
+func createSpyContainer(ctx context.Context, utilVolumeName string, cli *client.Client) (container.CreateResponse, error) {
 	_, err := cli.VolumeCreate(ctx, volume.CreateOptions{
 		Name: utilVolumeName,
 	})
@@ -80,66 +83,56 @@ func createSpyContainer(ctx context.Context, dir string, utilVolumeName string, 
 
 	mounts := []mount.Mount{
 		{
-			Type:   mount.TypeBind,
-			Source: dir,
-			Target: "/source",
-		},
-		{
 			Type:   mount.TypeVolume,
 			Source: utilVolumeName,
 			Target: "/out",
 		},
 	}
 
+	buf := byteFileToTar(spyCode, "spy.go")
+
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image:      "golang:1.23",
-		Cmd:        []string{"go", "build", "-o", "/out/spy", "/source/spy.go"},
-		WorkingDir: "app",
+		Cmd:        []string{"go", "build", "-o", "/out/spy", "spy.go"},
+		WorkingDir: "/app",
 	}, &container.HostConfig{
 		Mounts: mounts,
 		Resources: container.Resources{
-			Memory:     2_000_000,
-			MemorySwap: 4_000_000,
+			Memory:     2_000_000_000,
+			MemorySwap: 4_000_000_000,
 			CPUPeriod:  100000, // 100ms (in microseconds)
 			CPUQuota:   100000, // 100% of one CPU core
 			CPUCount:   1,
 		},
 		NetworkMode: "none",
 		AutoRemove:  true,
-	}, nil, nil, "go-runner-build-util")
+	}, nil, nil, utilVolumeName)
 	if err != nil {
 		return container.CreateResponse{}, err
 	}
+
+	err = cli.CopyToContainer(ctx, resp.ID, "/app", &buf, container.CopyToContainerOptions{})
+	if err != nil {
+		return container.CreateResponse{}, fmt.Errorf("could not copy spy.go to container: %w", err)
+	}
+
 	return resp, nil
 }
 
 func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code string) (*BuildStatus, error) {
-	dir, err := os.MkdirTemp("", "go-judge-runner-*")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(dir)
-
-	mainPath := filepath.Join(dir, "main.go")
-	if err := os.WriteFile(mainPath, []byte(code), 0644); err != nil {
-		return nil, err
-	}
 
 	volumeName := fmt.Sprintf("go-judge-volume-%s", submissionID)
 
-	_, err = c.dockerClient.VolumeCreate(ctx, volume.CreateOptions{
+	_, err := c.dockerClient.VolumeCreate(ctx, volume.CreateOptions{
 		Name: volumeName,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not create volume: %w", err)
 	}
 
+	codeBuf := byteFileToTar([]byte(code), "main.go")
+
 	mounts := []mount.Mount{
-		{
-			Type:   mount.TypeBind,
-			Source: dir,
-			Target: "/judge",
-		},
 		{
 			Type:   mount.TypeVolume,
 			Source: volumeName,
@@ -149,8 +142,8 @@ func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code 
 
 	resp, err := c.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image:      "golang:1.23",
-		Cmd:        []string{"go", "build", "-o", "/build/submission", "/judge/main.go"},
-		WorkingDir: "app",
+		Cmd:        []string{"go", "build", "-o", "/build/submission", "/app/main.go"},
+		WorkingDir: "/app",
 	}, &container.HostConfig{
 		Mounts: mounts,
 		Resources: container.Resources{
@@ -165,6 +158,11 @@ func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code 
 	}, nil, nil, fmt.Sprintf("go-runner-build-%s", submissionID))
 	if err != nil {
 		return nil, err
+	}
+
+	err = c.dockerClient.CopyToContainer(ctx, resp.ID, "/app", &codeBuf, container.CopyToContainerOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("could not copy main.go to container: %w", err)
 	}
 
 	return c.waitForBuildContainer(ctx, resp.ID)
@@ -205,21 +203,7 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 	// Create a volume name for this submission
 	volumeName := fmt.Sprintf("go-judge-volume-%s", submissionID)
 
-	dir, err := os.MkdirTemp("", "go-judge-runner-*")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(dir)
-
-	input := filepath.Join(dir, "input")
-	if err := os.WriteFile(input, []byte(testInput), 0644); err != nil {
-		return nil, err
-	}
-
-	output := filepath.Join(dir, "output")
-	if err := os.WriteFile(output, []byte(testOutput), 0644); err != nil {
-		return nil, err
-	}
+	inputBuf, outputBuf := byteFileToTar([]byte(testInput), "test_input"), byteFileToTar([]byte(testOutput), "test_output")
 
 	resp, err := c.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image:        "ubuntu:22.04",
@@ -230,17 +214,13 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 		AttachStderr: true,
 		OpenStdin:    true,
 		StdinOnce:    true,
+		WorkingDir:   "/app",
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeVolume,
 				Target: "/build",
 				Source: volumeName,
-			},
-			{
-				Type:   mount.TypeBind,
-				Target: "/judge",
-				Source: dir,
 			},
 			{
 				Type:   mount.TypeVolume,
@@ -257,12 +237,22 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 		NetworkMode: "none",
 		AutoRemove:  true,
 	}, nil, nil, fmt.Sprintf("go-runner-execution-%s", submissionID))
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create runner container: %w", err)
 	}
 
 	runnerContainerID := resp.ID
+
+	err = c.dockerClient.CopyToContainer(ctx, runnerContainerID, "/app", &inputBuf, container.CopyToContainerOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("could not copy input test file into container: %w", err)
+	}
+
+	err = c.dockerClient.CopyToContainer(ctx, runnerContainerID, "/app", &outputBuf, container.CopyToContainerOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("could not copy output test file into container: %w", err)
+	}
+
 	defer c.dockerClient.ContainerRemove(ctx, runnerContainerID, container.RemoveOptions{Force: true})
 
 	if err := c.dockerClient.ContainerStart(ctx, runnerContainerID, container.StartOptions{}); err != nil {
@@ -299,7 +289,6 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 		}
 	case <-ctx.Done():
 		executionError = fmt.Errorf("execution timed out")
-		// Kill the container if it's still running
 		c.dockerClient.ContainerKill(context.Background(), runnerContainerID, "SIGKILL")
 	}
 
@@ -332,4 +321,20 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 	}
 
 	return status, nil
+}
+
+func byteFileToTar(content []byte, name string) bytes.Buffer {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+
+	hdr := &tar.Header{
+		Name: name,
+		Mode: 0644,
+		Size: int64(len(content)),
+	}
+	tw.WriteHeader(hdr)
+	tw.Write([]byte(content))
+	tw.Close()
+
+	return buf
 }

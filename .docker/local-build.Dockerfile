@@ -49,7 +49,4 @@ COPY --from=builder /app/go-judge .
 COPY --from=builder /app/scripts /app/scripts
 RUN chmod +x /app/scripts/*.sh
 
-RUN useradd -m appuser && chown -R appuser:appuser /app
-USER appuser
-
 ENTRYPOINT ["./judge.docker-entrypoint.sh"]

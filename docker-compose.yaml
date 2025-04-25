@@ -1,9 +1,7 @@
 version: "3.8"
-
 configs:
   app_config:
     file: ./configs/config.yaml
-
 services:
   judge:
     build:
@@ -14,8 +12,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - runner
+      postgres:
+        condition: service_started
+      runner:
+        condition: service_healthy
     configs:
       - source: app_config
         target: /app/configs/config.yaml
@@ -29,7 +29,6 @@ services:
     networks:
       - runner-network
       - db-network
-
   runner:
     build:
       context: .
@@ -43,16 +42,16 @@ services:
         target: /app/configs/config.yaml
     deploy:
       replicas: 3
+    privileged: true
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=:8888"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 300s
     restart: unless-stopped
     networks:
       - runner-network
-
   postgres:
     image: postgres:16
     environment:
@@ -64,13 +63,11 @@ services:
     restart: unless-stopped
     networks:
       - db-network
-
 networks:
   db-network:
     driver: bridge
   runner-network:
     driver: bridge
-
 volumes:
   postgres-data:
     driver: local
