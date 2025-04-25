@@ -71,6 +71,8 @@ services:
       "
 
     restart: "no"
+    networks:
+      - runner-network
   util-volume-creator:
     image: golang:1.23
     volumes:
@@ -97,3 +99,4 @@ volumes:
   postgres-data:
     driver: local
   go-runner-utils:
+    driver: local

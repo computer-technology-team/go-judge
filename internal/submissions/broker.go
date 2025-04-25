@@ -200,6 +200,7 @@ func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (stora
 	}()
 
 	for updateEvent := range streamToIter(stream) {
+		slog.Info("recieved update event", "status", updateEvent.GetStatus())
 		switch updateEvent.GetStatus() {
 		case runnerPb.SubmissionStatusUpdate_RUNNING:
 			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{

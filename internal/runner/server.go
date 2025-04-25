@@ -28,6 +28,9 @@ func (rs *runnerServer) ExecuteSubmission(
 	request *runnerPb.SubmissionRequest,
 	stream grpc.ServerStreamingServer[runnerPb.SubmissionStatusUpdate],
 ) error {
+	logger := slog.With("memory_limit", request.GetMemoryLimitKb(), "timelimit", request.GetTimeLimitMs(),
+		"code", request.GetCode(), "submission_id", request.GetSubmissionId())
+	logger.Info("recieved request")
 	err := stream.Send(&runnerPb.SubmissionStatusUpdate{
 		SubmissionId:   request.GetSubmissionId(),
 		Status:         runnerPb.SubmissionStatusUpdate_RUNNING,
@@ -36,13 +39,14 @@ func (rs *runnerServer) ExecuteSubmission(
 		MaxTimeSpentMs: 0,
 	})
 	if err != nil {
-		slog.Error("could not send update in stream", "error", err)
+		logger.Error("could not send update in stream", "error", err)
 		return status.Error(codes.Internal, "could not send first message in stream")
 	}
 
 	_, err = rs.codeEvaluator.BuildCodeBinary(stream.Context(), request.GetSubmissionId(), request.GetCode())
 	if err != nil {
 		if errors.Is(err, ErrCompilationFailed) {
+			logger.Warn("compilation failed", "error", err)
 			stream.Send(&runnerPb.SubmissionStatusUpdate{
 				SubmissionId:   request.SubmissionId,
 				Status:         runnerPb.SubmissionStatusUpdate_COMPILATION_ERROR,
@@ -52,6 +56,7 @@ func (rs *runnerServer) ExecuteSubmission(
 			})
 			return nil
 		} else {
+			logger.Error("unexpected error in building code volume", "error", err)
 			stream.Send(&runnerPb.SubmissionStatusUpdate{
 				SubmissionId:   request.SubmissionId,
 				Status:         runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR,
@@ -63,6 +68,7 @@ func (rs *runnerServer) ExecuteSubmission(
 		}
 	}
 	for i, tc := range request.GetTestCases() {
+		logger.Info("running test case", "i", i)
 		err := stream.Send(&runnerPb.SubmissionStatusUpdate{
 			SubmissionId:   request.GetSubmissionId(),
 			Status:         runnerPb.SubmissionStatusUpdate_RUNNING,
@@ -71,14 +77,42 @@ func (rs *runnerServer) ExecuteSubmission(
 			MaxTimeSpentMs: 100,
 		})
 		if err != nil {
-			slog.Error("could not send update in stream", "error", err)
+			logger.Error("could not send update in stream", "error", err)
 			return status.Error(codes.Internal, "could not send subsequent messages in stream")
 		}
 
-		rs.codeEvaluator.RunTestCase(stream.Context(), request.GetSubmissionId(), tc.GetInput(), tc.GetOutput(), request.GetTimeLimitMs(), request.GetMemoryLimitKb())
+		runStatus, err := rs.codeEvaluator.RunTestCase(stream.Context(), request.GetSubmissionId(), tc.GetInput(), tc.GetOutput(), request.GetTimeLimitMs(), request.GetMemoryLimitKb())
+		if err != nil {
+			if errors.Is(err, ErrExecutionFailed) {
+				logger.Info("exection failed", "error", err, "exit_code", runStatus.ExitCode, "stdout", runStatus.Stdout, "stderr", runStatus.Stderr)
+				st, ok := exitCodeToStatus[runStatus.ExitCode]
+				if !ok {
+					st = runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR
+				}
 
-		return nil
+				stream.Send(&runnerPb.SubmissionStatusUpdate{
+					SubmissionId:   request.GetSubmissionId(),
+					Status:         st,
+					TestsCompleted: int32(i),
+					TotalTests:     int32(len(request.GetTestCases())),
+					MaxTimeSpentMs: 100,
+				})
+
+			} else {
+				logger.Error("run test case failed", "error", err)
+				stream.Send(&runnerPb.SubmissionStatusUpdate{
+					SubmissionId:   request.GetSubmissionId(),
+					Status:         runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR,
+					TestsCompleted: int32(i),
+					TotalTests:     int32(len(request.GetTestCases())),
+					MaxTimeSpentMs: 100,
+				})
+			}
+			return nil
+		}
 	}
+
+	logger.Info("submission accepted")
 
 	err = stream.Send(&runnerPb.SubmissionStatusUpdate{
 		SubmissionId:   request.GetSubmissionId(),
@@ -88,7 +122,7 @@ func (rs *runnerServer) ExecuteSubmission(
 		MaxTimeSpentMs: 100,
 	})
 	if err != nil {
-		slog.Error("could not send update in stream", "error", err)
+		logger.Error("could not send update in stream", "error", err)
 		return status.Error(codes.Internal, "could not send last message in stream")
 	}
 

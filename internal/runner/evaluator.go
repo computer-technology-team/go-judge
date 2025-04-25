@@ -20,9 +20,10 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
-const utilVolumeName = "go-runner-utils"
+const utilVolumeName = "go-judge_go-runner-utils"
 
 var ErrCompilationFailed = errors.New("could not compile program")
+var ErrExecutionFailed = errors.New("could not execute program")
 
 type CodeEvaluator struct {
 	dockerClient *client.Client
@@ -104,8 +105,8 @@ func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code 
 	}, &container.HostConfig{
 		Mounts: mounts,
 		Resources: container.Resources{
-			Memory:     2_000_000,
-			MemorySwap: 4_000_000,
+			Memory:     2_000_000_000,
+			MemorySwap: 4_000_000_000,
 			CPUPeriod:  100000, // 100ms (in microseconds)
 			CPUQuota:   100000, // 100% of one CPU core
 			CPUCount:   1,
@@ -157,7 +158,6 @@ func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID s
 }
 
 func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, testInput, testOutput string, timelimitMs, memorylimitKb int64) (*RunStatus, error) {
-	// Create a volume name for this submission
 	volumeName := fmt.Sprintf("go-judge-volume-%s", submissionID)
 
 	inputBuf, outputBuf := byteFileToTar([]byte(testInput), "test_input"), byteFileToTar([]byte(testOutput), "test_output")
@@ -232,15 +232,15 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 	select {
 	case err := <-errCh:
 		if err != nil {
-			executionError = fmt.Errorf("execution error: %w", err)
+			executionError = err
 		}
 	case status := <-statusCh:
 		exitCode = int(status.StatusCode)
 		if status.StatusCode != 0 {
-			executionError = fmt.Errorf("execution failed with status %d", status.StatusCode)
+			executionError = ErrExecutionFailed
 		}
 	case <-ctx.Done():
-		executionError = fmt.Errorf("execution timed out")
+		executionError = errors.New("execution timed out")
 		c.dockerClient.ContainerKill(context.Background(), runnerContainerID, "SIGKILL")
 	}
 
