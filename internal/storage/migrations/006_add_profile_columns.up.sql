@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN problems_attempted INT NOT NULL DEFAULT 0, 
+	ADD COLUMN problems_solved NOT NULL DEFAULT 0;
