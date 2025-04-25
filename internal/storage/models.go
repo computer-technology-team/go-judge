@@ -95,8 +95,10 @@ type TestCase struct {
 }
 
 type User struct {
-	ID           pgtype.UUID `db:"id" json:"id"`
-	Username     string      `db:"username" json:"username"`
-	PasswordHash string      `db:"password_hash" json:"password_hash"`
-	Superuser    bool        `db:"superuser" json:"superuser"`
+	ID                pgtype.UUID `db:"id" json:"id"`
+	Username          string      `db:"username" json:"username"`
+	PasswordHash      string      `db:"password_hash" json:"password_hash"`
+	Superuser         bool        `db:"superuser" json:"superuser"`
+	ProblemsAttempted int32       `db:"problems_attempted" json:"problems_attempted"`
+	ProblemsSolved    int32       `db:"problems_solved" json:"problems_solved"`
 }

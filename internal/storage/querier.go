@@ -11,9 +11,9 @@ import (
 )
 
 type Querier interface {
-	CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
+	CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (CreateAdminRow, error)
 	CreateSubmission(ctx context.Context, db DBTX, arg CreateSubmissionParams) (Submission, error)
-	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error)
+	CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (CreateUserRow, error)
 	DeleteProblemTestCases(ctx context.Context, db DBTX, problemID int32) error
 	DraftProblem(ctx context.Context, db DBTX, id int32) error
 	GetAllProblemsSorted(ctx context.Context, db DBTX, limit int32, offset int32) ([]GetAllProblemsSortedRow, error)

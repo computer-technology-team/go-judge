@@ -17,9 +17,16 @@ VALUES ($1, $2, true)
 RETURNING id, username, password_hash, superuser
 `
 
-func (q *Queries) CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (User, error) {
+type CreateAdminRow struct {
+	ID           pgtype.UUID `db:"id" json:"id"`
+	Username     string      `db:"username" json:"username"`
+	PasswordHash string      `db:"password_hash" json:"password_hash"`
+	Superuser    bool        `db:"superuser" json:"superuser"`
+}
+
+func (q *Queries) CreateAdmin(ctx context.Context, db DBTX, username string, passwordHash string) (CreateAdminRow, error) {
 	row := db.QueryRow(ctx, createAdmin, username, passwordHash)
-	var i User
+	var i CreateAdminRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
@@ -35,9 +42,16 @@ VALUES ($1, $2, false)
 RETURNING id, username, password_hash, superuser
 `
 
-func (q *Queries) CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (User, error) {
+type CreateUserRow struct {
+	ID           pgtype.UUID `db:"id" json:"id"`
+	Username     string      `db:"username" json:"username"`
+	PasswordHash string      `db:"password_hash" json:"password_hash"`
+	Superuser    bool        `db:"superuser" json:"superuser"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, db DBTX, username string, passwordHash string) (CreateUserRow, error) {
 	row := db.QueryRow(ctx, createUser, username, passwordHash)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
@@ -48,7 +62,7 @@ func (q *Queries) CreateUser(ctx context.Context, db DBTX, username string, pass
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, password_hash, superuser
+SELECT id, username, password_hash, superuser, problems_attempted, problems_solved
 FROM users
 WHERE id = $1
 `
@@ -61,12 +75,14 @@ func (q *Queries) GetUser(ctx context.Context, db DBTX, id pgtype.UUID) (User, e
 		&i.Username,
 		&i.PasswordHash,
 		&i.Superuser,
+		&i.ProblemsAttempted,
+		&i.ProblemsSolved,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, superuser
+SELECT id, username, password_hash, superuser, problems_attempted, problems_solved
 FROM users
 WHERE username = $1
 `
@@ -79,6 +95,8 @@ func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username strin
 		&i.Username,
 		&i.PasswordHash,
 		&i.Superuser,
+		&i.ProblemsAttempted,
+		&i.ProblemsSolved,
 	)
 	return i, err
 }
@@ -87,7 +105,7 @@ const toggleUserSuperLevel = `-- name: ToggleUserSuperLevel :one
 UPDATE users
 SET superuser = NOT superuser
 WHERE id = $1
-RETURNING id, username, password_hash, superuser
+RETURNING id, username, password_hash, superuser, problems_attempted, problems_solved
 `
 
 func (q *Queries) ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.UUID) (User, error) {
@@ -98,6 +116,8 @@ func (q *Queries) ToggleUserSuperLevel(ctx context.Context, db DBTX, id pgtype.U
 		&i.Username,
 		&i.PasswordHash,
 		&i.Superuser,
+		&i.ProblemsAttempted,
+		&i.ProblemsSolved,
 	)
 	return i, err
 }
