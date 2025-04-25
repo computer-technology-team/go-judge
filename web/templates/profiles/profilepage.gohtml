@@ -8,37 +8,63 @@
 {{ end }}
 
 {{ define "content" }}
-<div class="profile-container">
-    <div class="profile-header">
-        <h1>User Profile</h1>
-    </div>
-    
-    <div class="profile-card">
+    <div class="profile-container">
+
         <div class="profile-info">
-            <h2>{{ .Data.Username }}</h2>
-            
-            {{ if and .User (eq .User.Superuser true) }}
-                <div class="admin-controls">
-                    <h3>Admin Controls</h3>
-                    <div class="superuser-toggle">
-                        <p>Superuser Status: 
-                            <span class="{{ if .Data.Superuser }}status-enabled{{ else }}status-disabled{{ end }}">
-                                {{ if .Data.Superuser }}Enabled{{ else }}Disabled{{ end }}
-                            </span>
-                        </p>
-                        <form action="/profiles/{{ .Data.Username }}/toggle-superuser" method="POST">
-                            <button type="submit" class="btn btn-admin">
-                                {{ if .Data.Superuser }}
-                                    <span class="status-icon">⊖</span> Revoke Superuser Status
-                                {{ else }}
-                                    <span class="status-icon">⊕</span> Grant Superuser Status
-                                {{ end }}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            {{ end }}
+            <h2 class="username">
+                {{ if .Data.Superuser }}
+                    👑 {{ .Data.Username }}
+                {{ else }}
+                    🧑‍💻 {{ .Data.Username }}
+                {{ end }}
+            </h2>
         </div>
+
+        <div class="fancy-box">
+            <h3 class="box-title">📊 Problem Stats</h3>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-icon">🎯</span>
+                    <div class="stat-number">{{ .Data.ProblemsAttempted }}</div>
+                    <div class="stat-label">Attempted</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🏆</span>
+                    <div class="stat-number">{{ .Data.ProblemsSolved }}</div>
+                    <div class="stat-label">Solved</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📈</span>
+                    <div class="stat-number">
+                        {{ if gt .Data.ProblemsAttempted 0 }}
+                            {{ printf "%.1f" (mul (div (float64 .Data.ProblemsSolved) (float64 .Data.ProblemsAttempted)) 100.0) }}%
+                        {{ else }}
+                            0%
+                        {{ end }}
+                    </div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        {{ if and .User (eq .User.Superuser true) }}
+            <div class="admin-controls fancy-box">
+                <h3 class="box-title">🛠️ Admin Controls</h3>
+                <p class="admin-status-line">Superuser Status:
+                    <span class="{{ if .Data.Superuser }}status-enabled{{ else }}status-disabled{{ end }}">
+                {{ if .Data.Superuser }}Enabled{{ else }}Disabled{{ end }}
+            </span>
+                </p>
+                <form action="/profiles/{{ .Data.Username }}/toggle-superuser" method="POST" class="admin-form">
+                    <button type="submit" class="btn btn-admin-centered">
+                        {{ if .Data.Superuser }}
+                            ⊖ Revoke Superuser Status
+                        {{ else }}
+                            ⊕ Grant Superuser Status
+                        {{ end }}
+                    </button>
+                </form>
+            </div>
+        {{ end }}
     </div>
-</div>
 {{ end }}
