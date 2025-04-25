@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -17,17 +18,14 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/google/uuid"
 )
 
-//go:embed utils/spy.go
-var spyCode []byte
+const utilVolumeName = "go-runner-utils"
 
 var ErrCompilationFailed = errors.New("could not compile program")
 
 type CodeEvaluator struct {
-	dockerClient   *client.Client
-	utilVolumeName string
+	dockerClient *client.Client
 }
 
 type BuildStatus struct {
@@ -48,75 +46,34 @@ func NewCodeEvaluator(ctx context.Context) (*CodeEvaluator, error) {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
 	}
 
-	utilVolumeName := fmt.Sprintf("spy-%s", uuid.NewString())
+	err = pullImages(ctx, cli)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pull images: %w", err)
+	}
 
+	return &CodeEvaluator{dockerClient: cli}, nil
+
+}
+
+func pullImages(ctx context.Context, cli *client.Client) error {
+	slog.Info("pulling images")
 	pullResp, err := cli.ImagePull(ctx, "golang:1.23", image.PullOptions{})
 	if pullResp != nil {
 		pullResp.Close()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("could not pull golang:1.23: %w", err)
+		return fmt.Errorf("could not pull golang:1.23: %w", err)
 	}
 
-	resp, err := createSpyContainer(ctx, utilVolumeName, cli)
+	pullResp, err = cli.ImagePull(ctx, "ubuntu:22.04", image.PullOptions{})
+	if pullResp != nil {
+		pullResp.Close()
+	}
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("could not pull golang:1.23: %w", err)
 	}
 
-	evaluator := &CodeEvaluator{dockerClient: cli, utilVolumeName: utilVolumeName}
-
-	_, err = evaluator.waitForBuildContainer(ctx, resp.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return evaluator, nil
-}
-
-func createSpyContainer(ctx context.Context, utilVolumeName string, cli *client.Client) (container.CreateResponse, error) {
-	_, err := cli.VolumeCreate(ctx, volume.CreateOptions{
-		Name: utilVolumeName,
-	})
-	if err != nil {
-		return container.CreateResponse{}, err
-	}
-
-	mounts := []mount.Mount{
-		{
-			Type:   mount.TypeVolume,
-			Source: utilVolumeName,
-			Target: "/out",
-		},
-	}
-
-	buf := byteFileToTar(spyCode, "spy.go")
-
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image:      "golang:1.23",
-		Cmd:        []string{"go", "build", "-o", "/out/spy", "spy.go"},
-		WorkingDir: "/app",
-	}, &container.HostConfig{
-		Mounts: mounts,
-		Resources: container.Resources{
-			Memory:     2_000_000_000,
-			MemorySwap: 4_000_000_000,
-			CPUPeriod:  100000, // 100ms (in microseconds)
-			CPUQuota:   100000, // 100% of one CPU core
-			CPUCount:   1,
-		},
-		NetworkMode: "none",
-		AutoRemove:  true,
-	}, nil, nil, utilVolumeName)
-	if err != nil {
-		return container.CreateResponse{}, err
-	}
-
-	err = cli.CopyToContainer(ctx, resp.ID, "/app", &buf, container.CopyToContainerOptions{})
-	if err != nil {
-		return container.CreateResponse{}, fmt.Errorf("could not copy spy.go to container: %w", err)
-	}
-
-	return resp, nil
+	return nil
 }
 
 func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code string) (*BuildStatus, error) {
@@ -207,7 +164,7 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 
 	resp, err := c.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image:        "ubuntu:22.04",
-		Cmd:          []string{"/utils/spy"},
+		Cmd:          []string{"/utils/spy", "-timeout", strconv.Itoa(int(timelimitMs))},
 		Tty:          false,
 		AttachStdin:  true,
 		AttachStdout: true,
@@ -218,14 +175,16 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
-				Type:   mount.TypeVolume,
-				Target: "/build",
-				Source: volumeName,
+				Type:     mount.TypeVolume,
+				Target:   "/build",
+				Source:   volumeName,
+				ReadOnly: true,
 			},
 			{
-				Type:   mount.TypeVolume,
-				Target: "/utils",
-				Source: c.utilVolumeName,
+				Type:     mount.TypeVolume,
+				Target:   "/utils",
+				Source:   utilVolumeName,
+				ReadOnly: true,
 			},
 		},
 		Resources: container.Resources{
@@ -264,14 +223,7 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 
 	startTime := time.Now()
 
-	timeoutDuration := time.Duration(timelimitMs) * time.Millisecond
-	if timelimitMs > 0 {
-		timeoutCtx, cancel := context.WithTimeout(ctx, timeoutDuration)
-		defer cancel()
-		statusCh, errCh = c.dockerClient.ContainerWait(timeoutCtx, runnerContainerID, container.WaitConditionNotRunning)
-	} else {
-		statusCh, errCh = c.dockerClient.ContainerWait(ctx, runnerContainerID, container.WaitConditionNotRunning)
-	}
+	statusCh, errCh = c.dockerClient.ContainerWait(ctx, runnerContainerID, container.WaitConditionNotRunning)
 
 	// Wait for execution to complete
 	var executionError error

@@ -14,8 +14,6 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      runner:
-        condition: service_healthy
     configs:
       - source: app_config
         target: /app/configs/config.yaml
@@ -48,10 +46,37 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 300s
+      start_period: 40s
     restart: unless-stopped
+    depends_on:
+      image-puller:
+        condition: service_completed_successfully
+      util-volume-creator:
+        condition: service_completed_successfully
     networks:
       - runner-network
+  image-puller:
+    image: docker:cli
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      sh -c "echo 'Pulling required Docker images...' &&
+
+
+
+        docker pull golang:1.23 &&
+        docker pull ubuntu:22.04 &&
+        echo 'All required images pulled successfully!'
+      "
+
+    restart: "no"
+  util-volume-creator:
+    image: golang:1.23
+    volumes:
+      - go-runner-utils:/app
+      - ./utils:/utils
+    command: go build -o /app/spy /utils/spy.go
   postgres:
     image: postgres:16
     environment:
@@ -71,3 +96,4 @@ networks:
 volumes:
   postgres-data:
     driver: local
+  go-runner-utils:
