@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	runnerPb "github.com/computer-technology-team/go-judge/api/gen/runner"
+	"github.com/samber/lo"
 )
 
 type runnerServer struct {
@@ -43,13 +44,14 @@ func (rs *runnerServer) ExecuteSubmission(
 		return status.Error(codes.Internal, "could not send first message in stream")
 	}
 
-	_, err = rs.codeEvaluator.BuildCodeBinary(stream.Context(), request.GetSubmissionId(), request.GetCode())
+	err = rs.codeEvaluator.BuildCodeBinary(stream.Context(), request.GetSubmissionId(), request.GetCode())
 	if err != nil {
-		if errors.Is(err, ErrCompilationFailed) {
+		if buildErr, ok := lo.ErrorsAs[*BuildError](err); ok {
 			logger.Warn("compilation failed", "error", err)
 			stream.Send(&runnerPb.SubmissionStatusUpdate{
 				SubmissionId:   request.SubmissionId,
 				Status:         runnerPb.SubmissionStatusUpdate_COMPILATION_ERROR,
+				StatusMessage:  buildErr.Logs,
 				TestsCompleted: 0,
 				TotalTests:     int32(len(request.TestCases)),
 				MaxTimeSpentMs: 0,
@@ -67,6 +69,8 @@ func (rs *runnerServer) ExecuteSubmission(
 			return nil
 		}
 	}
+
+	var maxTimeSpendMs int64
 	for i, tc := range request.GetTestCases() {
 		logger.Info("running test case", "i", i)
 		err := stream.Send(&runnerPb.SubmissionStatusUpdate{
@@ -74,7 +78,7 @@ func (rs *runnerServer) ExecuteSubmission(
 			Status:         runnerPb.SubmissionStatusUpdate_RUNNING,
 			TestsCompleted: int32(i),
 			TotalTests:     int32(len(request.GetTestCases())),
-			MaxTimeSpentMs: 100,
+			MaxTimeSpentMs: int64(maxTimeSpendMs),
 		})
 		if err != nil {
 			logger.Error("could not send update in stream", "error", err)
@@ -84,7 +88,9 @@ func (rs *runnerServer) ExecuteSubmission(
 		runStatus, err := rs.codeEvaluator.RunTestCase(stream.Context(), request.GetSubmissionId(), tc.GetInput(), tc.GetOutput(), request.GetTimeLimitMs(), request.GetMemoryLimitKb())
 		if err != nil {
 			if errors.Is(err, ErrExecutionFailed) {
-				logger.Info("exection failed", "error", err, "exit_code", runStatus.ExitCode, "stdout", runStatus.Stdout, "stderr", runStatus.Stderr)
+				logger.Info("exection failed", "error", err, "exit_code", runStatus.ExitCode, "stdout", runStatus.Stdout,
+					"stderr", runStatus.Stderr)
+
 				st, ok := exitCodeToStatus[runStatus.ExitCode]
 				if !ok {
 					st = runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR
@@ -93,23 +99,27 @@ func (rs *runnerServer) ExecuteSubmission(
 				stream.Send(&runnerPb.SubmissionStatusUpdate{
 					SubmissionId:   request.GetSubmissionId(),
 					Status:         st,
+					StatusMessage:  runStatus.Stdout,
 					TestsCompleted: int32(i),
 					TotalTests:     int32(len(request.GetTestCases())),
-					MaxTimeSpentMs: 100,
+					MaxTimeSpentMs: maxTimeSpendMs,
 				})
 
 			} else {
-				logger.Error("run test case failed", "error", err)
+				logger.Error("run test case failed", "error", err, "exit_code", runStatus.ExitCode, "stdout", runStatus.Stdout,
+					"stderr", runStatus.Stderr)
 				stream.Send(&runnerPb.SubmissionStatusUpdate{
 					SubmissionId:   request.GetSubmissionId(),
 					Status:         runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR,
 					TestsCompleted: int32(i),
 					TotalTests:     int32(len(request.GetTestCases())),
-					MaxTimeSpentMs: 100,
+					MaxTimeSpentMs: maxTimeSpendMs,
 				})
 			}
 			return nil
 		}
+
+		maxTimeSpendMs = max(runStatus.ExecutionTime.Milliseconds(), maxTimeSpendMs)
 	}
 
 	logger.Info("submission accepted")

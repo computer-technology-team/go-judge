@@ -29,9 +29,13 @@ type CodeEvaluator struct {
 	dockerClient *client.Client
 }
 
-type BuildStatus struct {
+type BuildError struct {
 	ExitCode int
-	Message  string
+	Logs     string
+}
+
+func (e *BuildError) Error() string {
+	return fmt.Sprintf("build failed with exit code: %d", e.ExitCode)
 }
 
 type RunStatus struct {
@@ -77,7 +81,7 @@ func pullImages(ctx context.Context, cli *client.Client) error {
 	return nil
 }
 
-func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code string) (*BuildStatus, error) {
+func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code string) error {
 
 	volumeName := fmt.Sprintf("go-judge-volume-%s", submissionID)
 
@@ -85,7 +89,7 @@ func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code 
 		Name: volumeName,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not create volume: %w", err)
+		return fmt.Errorf("could not create volume: %w", err)
 	}
 
 	codeBuf := byteFileToTar([]byte(code), "main.go")
@@ -115,20 +119,20 @@ func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code 
 		AutoRemove:  true,
 	}, nil, nil, fmt.Sprintf("go-runner-build-%s", submissionID))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = c.dockerClient.CopyToContainer(ctx, resp.ID, "/app", &codeBuf, container.CopyToContainerOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("could not copy main.go to container: %w", err)
+		return fmt.Errorf("could not copy main.go to container: %w", err)
 	}
 
 	return c.waitForBuildContainer(ctx, resp.ID)
 }
 
-func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID string) (*BuildStatus, error) {
+func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID string) error {
 	if err := c.dockerClient.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
-		return nil, err
+		return err
 	}
 
 	statusCh, errCh := c.dockerClient.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
@@ -136,7 +140,7 @@ func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID s
 	case err := <-errCh:
 		if err != nil {
 			slog.Error("building code failed", "error", err)
-			return nil, fmt.Errorf("build error: %w", err)
+			return fmt.Errorf("build container error: %w", err)
 		}
 	case status := <-statusCh:
 		if status.StatusCode != 0 {
@@ -145,16 +149,16 @@ func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID s
 				ShowStderr: true,
 			})
 			if err != nil {
-				return &BuildStatus{ExitCode: int(status.StatusCode)}, ErrCompilationFailed
+				return &BuildError{ExitCode: int(status.StatusCode)}
 			}
 			defer out.Close()
 
 			logs, _ := io.ReadAll(out)
-			return &BuildStatus{ExitCode: int(status.StatusCode), Message: string(logs)}, ErrCompilationFailed
+			return &BuildError{ExitCode: int(status.StatusCode), Logs: string(logs)}
 		}
-		return &BuildStatus{ExitCode: 0}, nil
+		return &BuildError{ExitCode: 0}
 	}
-	return nil, nil
+	return nil
 }
 
 func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, testInput, testOutput string, timelimitMs, memorylimitKb int64) (*RunStatus, error) {

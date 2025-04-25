@@ -14,6 +14,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
+      runner:
+        condition: service_healthy
     configs:
       - source: app_config
         target: /app/configs/config.yaml
@@ -43,10 +45,10 @@ services:
     privileged: true
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=:8888"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 100s
     restart: unless-stopped
     depends_on:
       image-puller:
@@ -62,8 +64,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: >
       sh -c "echo 'Pulling required Docker images...' &&
-
-
 
         docker pull golang:1.23 &&
         docker pull ubuntu:22.04 &&

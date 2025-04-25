@@ -168,6 +168,7 @@ type SubmissionStatusUpdate struct {
 	state          protoimpl.MessageState        `protogen:"open.v1"`
 	SubmissionId   string                        `protobuf:"bytes,1,opt,name=submission_id,json=submissionId,proto3" json:"submission_id,omitempty"`
 	Status         SubmissionStatusUpdate_Status `protobuf:"varint,2,opt,name=status,proto3,enum=gojudge.SubmissionStatusUpdate_Status" json:"status,omitempty"`
+	StatusMessage  string                        `protobuf:"bytes,6,opt,name=status_message,json=statusMessage,proto3" json:"status_message,omitempty"`
 	TestsCompleted int32                         `protobuf:"varint,3,opt,name=tests_completed,json=testsCompleted,proto3" json:"tests_completed,omitempty"`
 	TotalTests     int32                         `protobuf:"varint,4,opt,name=total_tests,json=totalTests,proto3" json:"total_tests,omitempty"`
 	MaxTimeSpentMs int64                         `protobuf:"varint,5,opt,name=max_time_spent_ms,json=maxTimeSpentMs,proto3" json:"max_time_spent_ms,omitempty"`
@@ -217,6 +218,13 @@ func (x *SubmissionStatusUpdate) GetStatus() SubmissionStatusUpdate_Status {
 		return x.Status
 	}
 	return SubmissionStatusUpdate_PENDING
+}
+
+func (x *SubmissionStatusUpdate) GetStatusMessage() string {
+	if x != nil {
+		return x.StatusMessage
+	}
+	return ""
 }
 
 func (x *SubmissionStatusUpdate) GetTestsCompleted() int32 {
@@ -306,10 +314,11 @@ const file_runner_submission_proto_rawDesc = "" +
 	"test_cases\x18\x05 \x03(\v2#.gojudge.SubmissionRequest.TestCaseR\ttestCases\x1a8\n" +
 	"\bTestCase\x12\x14\n" +
 	"\x05input\x18\x01 \x01(\tR\x05input\x12\x16\n" +
-	"\x06output\x18\x02 \x01(\tR\x06output\"\xa9\x03\n" +
+	"\x06output\x18\x02 \x01(\tR\x06output\"\xd0\x03\n" +
 	"\x16SubmissionStatusUpdate\x12#\n" +
 	"\rsubmission_id\x18\x01 \x01(\tR\fsubmissionId\x12>\n" +
-	"\x06status\x18\x02 \x01(\x0e2&.gojudge.SubmissionStatusUpdate.StatusR\x06status\x12'\n" +
+	"\x06status\x18\x02 \x01(\x0e2&.gojudge.SubmissionStatusUpdate.StatusR\x06status\x12%\n" +
+	"\x0estatus_message\x18\x06 \x01(\tR\rstatusMessage\x12'\n" +
 	"\x0ftests_completed\x18\x03 \x01(\x05R\x0etestsCompleted\x12\x1f\n" +
 	"\vtotal_tests\x18\x04 \x01(\x05R\n" +
 	"totalTests\x12)\n" +

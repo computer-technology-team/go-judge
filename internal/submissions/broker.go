@@ -223,7 +223,7 @@ func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (stora
 				Status: storage.SubmissionStatusCOMPILATIONERROR,
 				Message: pgtype.Text{
 					Valid:  true,
-					String: "compile failed",
+					String: updateEvent.StatusMessage,
 				},
 			})
 			if err != nil {
@@ -317,7 +317,7 @@ func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (stora
 				Status: storage.SubmissionStatusRUNTIMEERROR,
 				Message: pgtype.Text{
 					Valid:  true,
-					String: fmt.Sprintf("Runtime error on test case %d", updateEvent.TestsCompleted+1),
+					String: fmt.Sprintf("Runtime error on test case %d: %s", updateEvent.TestsCompleted+1, updateEvent.GetStatusMessage()),
 				},
 			})
 			if err != nil {

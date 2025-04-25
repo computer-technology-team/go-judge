@@ -36,6 +36,7 @@ message SubmissionStatusUpdate {
 
   string submission_id = 1;
   Status status = 2;
+  string status_message = 6;
 
   int32 tests_completed = 3;
   int32 total_tests = 4;
