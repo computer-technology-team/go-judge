@@ -1,0 +1,78 @@
+
+{{ define "submission" }}
+{{ template "base" . }}
+{{ end }}
+
+{{ define "title" }}Submission {{ .Data.ProblemName }} - {{ .Data.Submission.ID }}{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/submission.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
+{{ end }}
+
+{{ define "content" }}
+{{ with .Data.Submission }}
+<div class="submission-container">
+    <div class="submission-header">
+        <h1>Submission Details</h1>
+        <div class="submission-meta">
+            <div class="meta-item">
+                <span class="meta-label">Problem:</span>
+                <a href="/problems/{{ .ProblemID }}" class="meta-value problem-link">{{ .ProblemID }} - {{ $.Data.ProblemName }}</a>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Submission ID:</span>
+                <span class="meta-value">{{ .ID }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Submitted:</span>
+                <span class="meta-value timestamp">{{ .CreatedAt.Time.Format "Jan 02, 2006 15:04:05" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="submission-status-container">
+        <div class="status-header">Status</div>
+        <div class="status-display">
+            <span class="status-badge status-{{ .Status | toString | lower }}">{{ .Status }}</span>
+            {{ if .Message.Valid }}
+            <div class="status-message">
+                <pre>{{ .Message.String }}</pre>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+
+    <div class="submission-code-container">
+        <div class="code-header">Solution Code</div>
+        <div class="code-editor">
+            <textarea id="code-display">{{ .SolutionCode }}</textarea>
+        </div>
+    </div>
+
+    <div class="submission-actions">
+        <a href="/submissions" class="btn btn-secondary">Back to Submissions</a>
+        <a href="submissions/problem/{{ .ProblemID }}/new" class="btn btn-primary">Submit New Solution</a>
+    </div>
+</div>
+{{ end }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var codeEditor = CodeMirror.fromTextArea(document.getElementById('code-display'), {
+            mode: 'text/x-go',
+            theme: 'default',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            readOnly: true,
+            lineWrapping: true
+        });
+        
+        codeEditor.setSize(null, 400);
+    });
+</script>
+
+{{ end }}

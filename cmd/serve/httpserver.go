@@ -42,7 +42,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("could not create runner client: %w", err)
 	}
 
-	broker := submissions.NewBroker(cfg.Broker.Workers, runnerClient, querier, pool)
+	broker := submissions.NewBroker(cfg.Broker, runnerClient, querier, pool)
 
 	broker.StartWorkers(ctx)
 	defer broker.StopWorkers()

@@ -154,7 +154,7 @@ func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID s
 			defer out.Close()
 
 			logs, _ := io.ReadAll(out)
-			return &BuildError{ExitCode: int(status.StatusCode), Logs: sanitizeUTF8(logs)}
+			return &BuildError{ExitCode: int(status.StatusCode), Logs: }
 		}
 		return &BuildError{ExitCode: 0}
 	}
@@ -283,7 +283,7 @@ func (c *CodeEvaluator) RunTestCase(ctx context.Context, submissionID string, te
 func sanitizeUTF8(input []byte) string {
 	// Remove null bytes
 	input = bytes.ReplaceAll(input, []byte{0}, []byte{})
-
+	
 	// Convert to string, replacing invalid UTF-8 sequences
 	return string(bytes.ToValidUTF8(input, []byte{}))
 }

@@ -8,6 +8,7 @@ import (
 	"iter"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -16,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 
 	runnerPb "github.com/computer-technology-team/go-judge/api/gen/runner"
+	"github.com/computer-technology-team/go-judge/config"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 )
 
@@ -45,16 +47,19 @@ type broker struct {
 	workerWg         sync.WaitGroup
 	workerCancelFunc context.CancelFunc
 	startOnce        sync.Once
+
+	jobTimeout time.Duration
 }
 
-func NewBroker(workerCnt int, runnerClient runnerPb.RunnerClient, querier storage.Querier, pool *pgxpool.Pool) Broker {
+func NewBroker(brokerConfig config.BrokerConfig, runnerClient runnerPb.RunnerClient, querier storage.Querier, pool *pgxpool.Pool) Broker {
 	return &broker{
 		runnerClient: runnerClient,
 		pool:         pool,
 		querier:      querier,
 
-		jobsChan:  make(chan submissionEvaluation, jobsChannelBufferSize),
-		workerCnt: workerCnt,
+		jobsChan:   make(chan submissionEvaluation, jobsChannelBufferSize),
+		workerCnt:  brokerConfig.Workers,
+		jobTimeout: brokerConfig.JobTimeout,
 
 		workerWg:         sync.WaitGroup{},
 		startOnce:        sync.Once{},
@@ -180,6 +185,8 @@ func (b *broker) startWorker(ctx context.Context) {
 }
 
 func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (storage.Submission, error) {
+	ctx, cancel := context.WithTimeout(ctx, b.jobTimeout)
+
 	stream, err := b.runnerClient.ExecuteSubmission(ctx, &runnerPb.SubmissionRequest{
 		SubmissionId:  job.submission.ID.String(),
 		Code:          job.submission.SolutionCode,
@@ -196,7 +203,7 @@ func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (stora
 
 	defer func() {
 		_ = stream.CloseSend()
-		stream.Context().Done()
+		cancel()
 	}()
 
 	for updateEvent := range streamToIter(stream) {

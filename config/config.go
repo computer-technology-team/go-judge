@@ -41,7 +41,8 @@ type DatabaseConfig struct {
 }
 
 type BrokerConfig struct {
-	Workers int `mapstructure:"workers"`
+	Workers    int           `mapstructure:"workers"`
+	JobTimeout time.Duration `mapstructure:"job_timeout"`
 }
 
 // DSN returns a PostgreSQL connection string
@@ -67,6 +68,7 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("runner_client.address", "runner:8888")
 
 	v.SetDefault("broker.workers", 5)
+	v.SetDefault("broker.job_timeout", time.Minute*5)
 
 	// Database defaults
 	v.SetDefault("database.host", "localhost")

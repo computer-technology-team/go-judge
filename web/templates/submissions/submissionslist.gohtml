@@ -1,0 +1,57 @@
+{{ define "submissionslist" }}
+{{ template "base" . }}
+{{ end }}
+
+{{ define "title" }}Submissions List{{ end }}
+
+{{ define "head" }}
+<link rel="stylesheet" href="/static/css/submissionslist.css">
+{{ end }}
+
+{{ define "content" }}
+<div class="submissions-container">
+    <div class="submissions-header">
+        <h1>Your Submissions</h1>
+    </div>
+
+    {{ if .Data }}
+    <table class="submissions-table">
+        <thead>
+            <tr>
+                <th>Problem</th>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range $submission :=  .Data }}
+                {{ with $submission.Submission }}
+            <tr>
+                <td>
+                    <a href="/problems/{{ .ProblemID }}">{{ .ProblemID }} - {{ $submission.ProblemName }}</a>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ .Status | toString | lower }}">
+                        {{ .Status }}
+                    </span>
+                </td>
+                <td>
+                    <span class="timestamp">{{ .CreatedAt.Time.Format "Jan 02, 2006 15:04:05" }}</span>
+                </td>
+                <td>
+                    <a href="/submissions/{{ .ID }}" class="btn">View Details</a>
+                </td>
+            </tr>
+                {{ end }}
+            {{ end }}
+        </tbody>
+    </table>
+    {{ else }}
+    <div class="empty-state">
+        <p>You haven't submitted any solutions yet.</p>
+        <a href="/problems" class="btn btn-animated">Browse Problems</a>
+    </div>
+    {{ end }}
+</div>
+{{ end }}
