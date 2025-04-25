@@ -49,13 +49,13 @@ func (h *DefaultHandler) ListProblems(w http.ResponseWriter, r *http.Request) {
 		pageSize = defaultPageSize
 	}
 
-	limit := pageSize * page
+	limit := pageSize
 	offset := pageSize * (page - 1)
 
 	problems, err := h.querier.GetAllPublishedProblemsSorted(ctx, h.pool, int32(limit), int32(offset))
 	if err != nil {
 		slog.Error("could not fetch problems", "error", err)
-		http.Error(w, "could not fetch problems", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not fetch problems", http.StatusInternalServerError, h.templates)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *DefaultHandler) ListProblems(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("could not render listproblemspage", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not render", http.StatusInternalServerError, h.templates)
 		return
 	}
 }

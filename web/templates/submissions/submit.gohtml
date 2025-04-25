@@ -16,18 +16,23 @@
     <div class="problem-header">
         <h1>{{ .Data.Title }}</h1>
         <div class="problem-limits">
-            <span class="limit memory-limit">Memory Limit: {{ .Data.MemoryLimitKb }} Kb</span>
-            <span class="limit time-limit">Time Limit: {{ .Data.TimeLimitMs }} ms</span>
+            <span class="limit memory-limit">Memory Limit: {{ .Data.MemoryLimitKb }} KB</span>
+            <span class="limit time-limit">Time Limit: {{ .Data.TimeLimitMs }} MS</span>
         </div>
     </div>
 
-    <div class="submission-form">
-        <form action="/submissions" method="POST">
+<div class="submission-form">
+        <form action="/submissions" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="problem_id" value="{{ .Data.ID }}">
             
             <div class="form-group">
                 <label for="code">Solution (Go)</label>
-                <textarea id="code" name="code" placeholder="// Write your Go code here"></textarea>
+                <textarea id="code" name="code" placeholder="// Write your Go code here" ></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="file">Or upload a Go file</label>
+                <input type="file" id="file" name="file" accept=".go" >
             </div>
             
             <div class="form-actions">

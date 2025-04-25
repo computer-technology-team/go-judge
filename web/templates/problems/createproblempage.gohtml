@@ -49,12 +49,12 @@
             <textarea id="output" name="sample_output" rows="3" required>{{ if .Data }}{{ .Data.Problem.SampleOutput }}{{ end }}</textarea>
         </div>
         <div class="form-group">
-            <label for="time_limit">Time Limit (seconds)</label>
-            <input type="number" id="time_limit" name="time_limit" min="1" value="{{ if .Data }}{{ .Data.Problem.TimeLimitMs }}{{ end }}" required>
+            <label for="time_limit">Time Limit (milliseconds)</label>
+            <input type="number" id="time_limit" name="time_limit" min="100" max="20000" value="{{ if .Data }}{{ .Data.Problem.TimeLimitMs }}{{ end }}" required>
         </div>
         <div class="form-group">
             <label for="memory_limit">Memory Limit (KB)</label>
-            <input type="number" id="memory_limit" name="memory_limit" min="1" value="{{ if .Data }}{{ .Data.Problem.MemoryLimitKb }}{{ end }}" required>
+            <input type="number" id="memory_limit" name="memory_limit" min="64000" max="2000000" value="{{ if .Data }}{{ .Data.Problem.MemoryLimitKb }}{{ end }}" required>
         </div>
         <div id="test-cases">
             {{ if not .Data }}

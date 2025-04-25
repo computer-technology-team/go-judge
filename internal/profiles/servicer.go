@@ -42,14 +42,13 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// TODO: make this html
-			http.Error(w, "user not found", http.StatusNotFound)
-
+			templates.RenderError(ctx, w, "user not found", http.StatusNotFound, s.templates)
 			return
 		}
 
 		slog.ErrorContext(ctx, "could not get user from database",
 			slog.String("username", username), "error", err)
-		http.Error(w, "could not get user from storage", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not get user from storage", http.StatusInternalServerError, s.templates)
 		return
 	}
 
@@ -58,7 +57,7 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(ctx, "could not render profile",
 			slog.String("username", username), "error", err)
 
-		http.Error(w, "could not render profile", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not render profile", http.StatusInternalServerError, s.templates)
 		return
 	}
 }
@@ -89,7 +88,7 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "could not toggle user superuser", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not toggle user superuser", http.StatusInternalServerError, s.templates)
 		return
 	}
 

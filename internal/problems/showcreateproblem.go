@@ -59,7 +59,7 @@ func (h *DefaultHandler) ProblemForm(w http.ResponseWriter, r *http.Request) {
 	err := h.templates.Render(r.Context(), "createproblempage", w, data)
 	if err != nil {
 		slog.Error("could not render createproblempage", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not render", http.StatusInternalServerError, h.templates)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

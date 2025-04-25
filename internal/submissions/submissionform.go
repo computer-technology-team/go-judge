@@ -2,11 +2,13 @@ package submissions
 
 import (
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/computer-technology-team/go-judge/web/templates"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 )
 
 // SubmissionForm implements Handler.
@@ -19,7 +21,7 @@ func (s *ServicerImpl) SubmissionForm(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.WarnContext(ctx, "problem id is invalid", "error", err,
 			"problem_id", chi.URLParam(r, "problem_id"))
-		http.Error(w, "problem id is invalid", http.StatusBadRequest)
+		templates.RenderError(ctx, w, "problem id is invalid", http.StatusBadRequest, s.templates)
 		return
 	}
 
@@ -28,19 +30,20 @@ func (s *ServicerImpl) SubmissionForm(w http.ResponseWriter, r *http.Request) {
 	problem, err := s.querier.GetProblemByID(ctx, s.pool, int32(problemID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			templates.RenderError(ctx, w, "problem not found", http.StatusNotFound, s.templates)
 			http.Error(w, "problem not found", http.StatusNotFound)
 			return
 		}
 
 		logger.ErrorContext(ctx, "could not retrieve problem", "error", err)
-		http.Error(w, "could not retrieve problem", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not retrieve problem", http.StatusInternalServerError, s.templates)
 		return
 	}
 
 	err = s.templates.Render(ctx, "submit", w, problem)
 	if err != nil {
 		logger.ErrorContext(ctx, "could not render template", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not render", http.StatusInternalServerError, s.templates)
 		return
 	}
 }

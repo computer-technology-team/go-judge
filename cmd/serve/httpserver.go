@@ -92,7 +92,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	router.Use(chiMiddleware.RealIP)
 	router.Use(chiMiddleware.RequestID)
 	router.Use(chiMiddleware.Timeout(60 * time.Second))
-	router.Use(middleware.NewAuthMiddleWare(authenticator, pool, querier))
+	router.Use(middleware.NewAuthMiddleWare(authenticator, pool, querier, sharedTemplates))
 
 	// CORS configuration
 	router.Use(cors.Handler(cors.Options{
@@ -128,7 +128,7 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		w.Write([]byte("OK"))
 	})
 
-	// Serve static files from embedded filesystem
+	// Serve static files from embedded filesystem with caching and ETag support
 	router.Handle("/static/*", http.StripPrefix("/static", static.StaticFilerHandler()))
 
 	// Create the HTTP server

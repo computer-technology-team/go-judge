@@ -46,7 +46,7 @@ func (s *DefaultServicer) ShowLoginPage(w http.ResponseWriter, r *http.Request) 
 	err := s.templates.Render(r.Context(), "login", w, nil)
 	if err != nil {
 		slog.Error("could not render login", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not render", http.StatusInternalServerError, s.templates)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -54,7 +54,7 @@ func (s *DefaultServicer) ShowLoginPage(w http.ResponseWriter, r *http.Request) 
 
 func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "Invalid form data", http.StatusBadRequest, s.templates)
 		return
 	}
 
@@ -62,12 +62,12 @@ func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 
 	if username == "" || password == "" {
-		http.Error(w, "username and password are required", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "username and password are required", http.StatusBadRequest, s.templates)
 		return
 	}
 
 	if len(password) < 8 {
-		http.Error(w, "password length can not be less than 8", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "password length can not be less than 8", http.StatusBadRequest, s.templates)
 		return
 	}
 
@@ -77,12 +77,12 @@ func (s *DefaultServicer) Login(w http.ResponseWriter, r *http.Request) {
 func (s *DefaultServicer) loginUser(w http.ResponseWriter, r *http.Request, username string, password string) {
 	user, err := s.querier.GetUserByUsername(r.Context(), s.pool, username)
 	if err != nil {
-		http.Error(w, "Username not found", http.StatusUnauthorized)
+		templates.RenderError(r.Context(), w, "Username not found", http.StatusUnauthorized, s.templates)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		templates.RenderError(r.Context(), w, "Invalid credentials", http.StatusUnauthorized, s.templates)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (s *DefaultServicer) loginUser(w http.ResponseWriter, r *http.Request, user
 
 	tokenString, tokenClaims, err := s.authenticator.GenerateToken(r.Context(), claims)
 	if err != nil {
-		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "Error generating token", http.StatusInternalServerError, s.templates)
 		return
 	}
 
@@ -132,21 +132,21 @@ func (s *DefaultServicer) Signup(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 
 	if username == "" || password == "" {
-		http.Error(w, "All fields are required", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "All fields are required", http.StatusBadRequest, s.templates)
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "could not process password", "error", err, "username", username, "password", password)
-		http.Error(w, "Error processing password", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "Error processing password", http.StatusInternalServerError, s.templates)
 		return
 	}
 
 	_, err = s.querier.CreateUser(r.Context(), s.pool, username, string(hashedPassword))
 	if err != nil {
 		slog.ErrorContext(r.Context(), "could not create user", "error", err, "username", username)
-		http.Error(w, "Could not create user", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "Could not create user", http.StatusInternalServerError, s.templates)
 		return
 	}
 

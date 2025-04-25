@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/computer-technology-team/go-judge/web/templates"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 )
@@ -16,7 +17,7 @@ func (h *DefaultHandler) ViewProblem(w http.ResponseWriter, r *http.Request) {
 	intID, err := strconv.Atoi(id)
 	if err != nil {
 		slog.Error("invalid problem ID", "error", err)
-		http.Error(w, "invalid problem ID", http.StatusBadRequest)
+		templates.RenderError(r.Context(), w, "invalid problem ID", http.StatusBadRequest, h.templates)
 		return
 	}
 
@@ -25,9 +26,9 @@ func (h *DefaultHandler) ViewProblem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("could not get problem by ID", "error", err)
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, "problem not found", http.StatusNotFound)
+			templates.RenderError(r.Context(), w, "problem not found", http.StatusNotFound, h.templates)
 		} else {
-			http.Error(w, "could not get problem", http.StatusInternalServerError)
+			templates.RenderError(r.Context(), w, "could not get problem", http.StatusInternalServerError, h.templates)
 		}
 		return
 	}
@@ -35,8 +36,7 @@ func (h *DefaultHandler) ViewProblem(w http.ResponseWriter, r *http.Request) {
 	err = h.templates.Render(r.Context(), "viewproblempage", w, p)
 	if err != nil {
 		slog.Error("could not render viewproblempage", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not render", http.StatusInternalServerError, h.templates)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

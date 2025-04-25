@@ -39,7 +39,7 @@ func (h *DefaultHandler) Home(w http.ResponseWriter, r *http.Request) {
 	err := h.templates.Render(r.Context(), "homepage", w, nil)
 	if err != nil {
 		slog.Error("could not render home", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(r.Context(), w, "could not render", http.StatusInternalServerError, h.templates)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

@@ -37,9 +37,13 @@
                     <span class="draft-badge">Draft</span>
                     {{ end }}
                 </h2>
+
+                {{ if $.User.Superuser }}
                 <div class="problem-meta">
                     <span class="problem-author">Author: {{ .AuthorName }}</span>
                 </div>
+                {{ end }}
+
                 <div class="problem-limits">
                     <span class="limit time-limit">Time: {{ .TimeLimitMs }}ms</span>
                     <span class="limit memory-limit">Memory: {{ .MemoryLimitKb }}KB</span>

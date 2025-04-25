@@ -4,7 +4,7 @@
 
 {{define "content"}}
 	<div class="generalerror-container">
-		<img class="generalerror-img" src="/static/images/error-this-is-fine.png" alt="gopher this is fine meme" />
+		<img class="generalerror-img" src="{{ .Data.Image }}" alt="{{ .Data.ImageAlt }}" />
 		<h1 class="generalerror-title">{{ .Data.Title }}</h1>
 		<p class="generalerror-message">{{ .Data.Message }}</p>
 		<a href="/home" class="btn">Return to Home</a>

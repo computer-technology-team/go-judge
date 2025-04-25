@@ -48,7 +48,7 @@ func (h *DefaultHandler) ListMyProblems(w http.ResponseWriter, r *http.Request) 
 		pageSize = defaultPageSize
 	}
 
-	limit := pageSize * page
+	limit := pageSize
 	offset := pageSize * (page - 1)
 	var problems []any
 
@@ -60,7 +60,7 @@ func (h *DefaultHandler) ListMyProblems(w http.ResponseWriter, r *http.Request) 
 		})
 		if err != nil {
 			slog.Error("could not fetch user problems", "error", err)
-			http.Error(w, "could not fetch problems", http.StatusInternalServerError)
+			templates.RenderError(ctx, w, "could not fetch problems", http.StatusInternalServerError, h.templates)
 			return
 		}
 		problems = lo.ToAnySlice(userProbs)
@@ -82,7 +82,7 @@ func (h *DefaultHandler) ListMyProblems(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		slog.Error("could not render listmyproblemspage", "error", err)
-		http.Error(w, "could not render", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not render", http.StatusInternalServerError, h.templates)
 		return
 	}
 }

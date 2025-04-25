@@ -15,7 +15,7 @@ import (
 	"github.com/computer-technology-team/go-judge/web/templates"
 )
 
-func NewAuthMiddleWare(authenticator authenticatorPkg.Authenticator, pool *pgxpool.Pool, querier storage.Querier) func(http.Handler) http.Handler {
+func NewAuthMiddleWare(authenticator authenticatorPkg.Authenticator, pool *pgxpool.Pool, querier storage.Querier, tmpl *templates.Templates) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -28,7 +28,7 @@ func NewAuthMiddleWare(authenticator authenticatorPkg.Authenticator, pool *pgxpo
 
 			claims, err := authenticator.VerifyDecodeToken(r.Context(), authToken.Value)
 			if err != nil {
-				http.Error(w, "invalid token", http.StatusUnauthorized)
+				templates.RenderError(r.Context(), w, "invalid token", http.StatusUnauthorized, nil)
 				return
 			}
 
@@ -37,7 +37,7 @@ func NewAuthMiddleWare(authenticator authenticatorPkg.Authenticator, pool *pgxpo
 				slog.ErrorContext(ctx, "invalid user id in valid token",
 					slog.String("token", authToken.Value),
 					slog.String("claims.user_id", claims.UserID))
-				http.Error(w, "invalid token payload", http.StatusInternalServerError)
+				templates.RenderError(ctx, w, "invalid token payload", http.StatusInternalServerError, nil)
 				return
 			}
 
@@ -45,7 +45,7 @@ func NewAuthMiddleWare(authenticator authenticatorPkg.Authenticator, pool *pgxpo
 			if err != nil {
 				slog.ErrorContext(ctx, "could not get user from database",
 					slog.String("claims.user_id", claims.UserID), "userUUID", userUUID)
-				http.Error(w, "invalid token payload", http.StatusInternalServerError)
+				templates.RenderError(ctx, w, "invalid token payload", http.StatusInternalServerError, tmpl)
 			}
 
 			ctx = context.WithValue(r.Context(), internalcontext.UserContextKey, &user)
@@ -89,7 +89,7 @@ func renderUnAuthenticated(ctx context.Context, tmpl *templates.Templates, w htt
 	err := tmpl.Render(ctx, "unauthenticated", w, nil)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to render unauthenticated template", "error", err)
-		http.Error(w, "unauthenticated", http.StatusUnauthorized)
+		templates.RenderError(ctx, w, "unauthenticated", http.StatusUnauthorized, tmpl)
 		return
 	}
 }
@@ -99,7 +99,7 @@ func renderUnAuthorized(ctx context.Context, tmpl *templates.Templates, w http.R
 	err := tmpl.Render(ctx, "unauthorized", w, nil)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to render  template", "error", err)
-		http.Error(w, "unauthorized", http.StatusForbidden)
+		templates.RenderError(ctx, w, "unauthorized", http.StatusForbidden, tmpl)
 		return
 	}
 }

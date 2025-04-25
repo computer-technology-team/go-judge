@@ -1,6 +1,7 @@
 /* Submissions list styling */
 .submissions-container {
-  max-width: 900px;
+  max-width: 100%;
+  width: 100%;
   margin: 0 auto;
   padding: 1.5rem;
   background-color: white;
