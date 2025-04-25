@@ -108,13 +108,17 @@ func (b *broker) AddSubmissionEvaluation(submission storage.Submission) {
 		testCases:  testCases,
 	}
 
+	b.addJob(ctx, job)
+}
+
+func (b *broker) addJob(ctx context.Context, job submissionEvaluation) {
 	select {
 	case b.jobsChan <- job:
-		slog.Info("added submission to evaluation queue", "submission_id", submission.ID)
+		slog.Info("added submission to evaluation queue", "submission_id", job.submission.ID)
 	default:
-		slog.Error("evaluation queue is full, dropping submission", "submission_id", submission.ID)
+		slog.Error("evaluation queue is full, dropping submission", "submission_id", job.submission.ID)
 		_, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-			ID:     submission.ID,
+			ID:     job.submission.ID,
 			Status: storage.SubmissionStatusINTERNALERROR,
 			Message: pgtype.Text{
 				Valid:  true,
@@ -144,8 +148,8 @@ func (b *broker) StopWorkers() {
 		return
 	}
 	close(b.jobsChan)
-	b.workerCancelFunc()
 	b.workerWg.Wait()
+	b.workerCancelFunc()
 }
 
 func (b *broker) startWorker(ctx context.Context) {
@@ -175,7 +179,7 @@ func (b *broker) startWorker(ctx context.Context) {
 						slog.Error("could not handle retry", "error", err)
 					}
 
-					b.jobsChan <- job
+					b.addJob(ctx, job)
 				}
 			case <-ctx.Done():
 				return
@@ -186,6 +190,7 @@ func (b *broker) startWorker(ctx context.Context) {
 
 func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (storage.Submission, error) {
 	ctx, cancel := context.WithTimeout(ctx, b.jobTimeout)
+	defer cancel()
 
 	stream, err := b.runnerClient.ExecuteSubmission(ctx, &runnerPb.SubmissionRequest{
 		SubmissionId:  job.submission.ID.String(),
@@ -203,175 +208,155 @@ func (b *broker) handleJob(ctx context.Context, job submissionEvaluation) (stora
 
 	defer func() {
 		_ = stream.CloseSend()
-		cancel()
 	}()
 
-	for updateEvent := range streamToIter(stream) {
-		slog.Info("recieved update event", "status", updateEvent.GetStatus())
-		switch updateEvent.GetStatus() {
-		case runnerPb.SubmissionStatusUpdate_RUNNING:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusRUNNING,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: fmt.Sprintf("%d/%d", updateEvent.TestsCompleted, updateEvent.TotalTests),
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "running", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
+	for updateEvent, err := range streamToIter(stream) {
+		if err != nil {
+			return job.submission, err
+		}
 
-			job.submission = updatedSubmission
-		case runnerPb.SubmissionStatusUpdate_COMPILATION_ERROR:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusCOMPILATIONERROR,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: updateEvent.StatusMessage,
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "compilation error", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
+		slog.Info("received update event", "status", updateEvent.GetStatus())
 
-			job.submission = updatedSubmission
+		// Handle the update event based on its status
+		updatedSubmission, err := b.handleStatusUpdate(ctx, job, updateEvent)
+		if err != nil {
+			return job.submission, err
+		}
 
-			return job.submission, nil
-		case runnerPb.SubmissionStatusUpdate_ACCEPTED:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusACCEPTED,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: fmt.Sprintf("Passed all %d test cases", updateEvent.TotalTests),
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "accepted", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
+		job.submission = updatedSubmission
 
-			job.submission = updatedSubmission
-			return job.submission, nil
-		case runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR:
-			tx, err := b.pool.Begin(ctx)
-			if err != nil {
-				slog.Error("could not begin update transaction", "error", err, "status", "internal error")
-				return job.submission, fmt.Errorf("could not begin update submission transaction: %w", err)
-			}
-
-			defer func(ctx context.Context, tx pgx.Tx) {
-				err := tx.Rollback(ctx)
-				if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
-					slog.Error("could not rollback transaction")
-				}
-			}(ctx, tx)
-
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, tx, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusINTERNALERROR,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: "Internal error occurred during evaluation",
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "internal error", "error", err)
-
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
-
-			job.submission, err = b.increaseSubmissionRetry(ctx, updatedSubmission, tx)
-			return job.submission, errors.Join(err)
-
-		case runnerPb.SubmissionStatusUpdate_MEMORY_LIMIT_EXCEEDED:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusMEMORYLIMITEXCEEDED,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: fmt.Sprintf("Memory limit exceeded (%d KB)", job.problem.MemoryLimitKb),
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "memory limit exceeded", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
-
-			job.submission = updatedSubmission
-			return job.submission, nil
-		case runnerPb.SubmissionStatusUpdate_PENDING:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusPENDING,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: "Waiting for evaluation",
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "pending", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
-			job.submission = updatedSubmission
-		case runnerPb.SubmissionStatusUpdate_RUNTIME_ERROR:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusRUNTIMEERROR,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: fmt.Sprintf("Runtime error on test case %d: %s", updateEvent.TestsCompleted+1, updateEvent.GetStatusMessage()),
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "runtime error", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
-
-			job.submission = updatedSubmission
-			return job.submission, nil
-		case runnerPb.SubmissionStatusUpdate_TIME_LIMIT_EXCEEDED:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusTIMELIMITEXCEEDED,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: fmt.Sprintf("Time limit exceeded (%d ms) on test case %d", job.problem.TimeLimitMs, updateEvent.TestsCompleted+1),
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "time limit exceeded", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
-
-			job.submission = updatedSubmission
-			return job.submission, nil
-		case runnerPb.SubmissionStatusUpdate_WRONG_ANSWER:
-			updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, b.pool, storage.UpdateSubmissionStatusParams{
-				ID:     job.submission.ID,
-				Status: storage.SubmissionStatusWRONGANSWER,
-				Message: pgtype.Text{
-					Valid:  true,
-					String: fmt.Sprintf("Wrong answer on test case %d", updateEvent.TestsCompleted+1),
-				},
-			})
-			if err != nil {
-				slog.Error("could not update submission status", "status", "wrong answer", "error", err)
-				return job.submission, fmt.Errorf("could not update submission status: %w", err)
-			}
-			job.submission = updatedSubmission
-			return job.submission, nil
-		default:
-			slog.Error("unexpected update event", "status", updateEvent.GetStatus())
-			return job.submission, errors.New("unexpected update event")
+		// For terminal states, return immediately
+		if isTerminalState(updateEvent.GetStatus()) {
+			return job.submission, getErrorForStatus(updateEvent.GetStatus())
 		}
 	}
 
 	return job.submission, nil
+}
+
+// isTerminalState determines if a submission status is a terminal state
+func isTerminalState(status runnerPb.SubmissionStatusUpdate_Status) bool {
+	switch status {
+	case runnerPb.SubmissionStatusUpdate_PENDING,
+		runnerPb.SubmissionStatusUpdate_RUNNING:
+		return false
+	default:
+		return true
+	}
+}
+
+// getErrorForStatus returns the appropriate error for terminal states
+func getErrorForStatus(status runnerPb.SubmissionStatusUpdate_Status) error {
+	if status == runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR {
+		return errInternalErrorInEvaluation
+	}
+	return nil
+}
+
+// handleStatusUpdate processes a status update and returns the updated submission
+func (b *broker) handleStatusUpdate(ctx context.Context, job submissionEvaluation, updateEvent *runnerPb.SubmissionStatusUpdate) (storage.Submission, error) {
+	switch updateEvent.GetStatus() {
+	case runnerPb.SubmissionStatusUpdate_RUNNING:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusRUNNING,
+			fmt.Sprintf("%d/%d", updateEvent.TestsCompleted, updateEvent.TotalTests), "running")
+
+	case runnerPb.SubmissionStatusUpdate_COMPILATION_ERROR:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusCOMPILATIONERROR,
+			updateEvent.StatusMessage, "compilation error")
+
+	case runnerPb.SubmissionStatusUpdate_ACCEPTED:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusACCEPTED,
+			fmt.Sprintf("Passed all %d test cases", updateEvent.TotalTests), "accepted")
+
+	case runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR:
+		return b.handleInternalError(ctx, job.submission)
+
+	case runnerPb.SubmissionStatusUpdate_MEMORY_LIMIT_EXCEEDED:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusMEMORYLIMITEXCEEDED,
+			fmt.Sprintf("Memory limit exceeded (%d KB)", job.problem.MemoryLimitKb), "memory limit exceeded")
+
+	case runnerPb.SubmissionStatusUpdate_PENDING:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusPENDING,
+			"Waiting for evaluation", "pending")
+
+	case runnerPb.SubmissionStatusUpdate_RUNTIME_ERROR:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusRUNTIMEERROR,
+			fmt.Sprintf("Runtime error on test case %d: %s", updateEvent.TestsCompleted+1, updateEvent.GetStatusMessage()), "runtime error")
+
+	case runnerPb.SubmissionStatusUpdate_TIME_LIMIT_EXCEEDED:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusTIMELIMITEXCEEDED,
+			fmt.Sprintf("Time limit exceeded (%d ms) on test case %d", job.problem.TimeLimitMs, updateEvent.TestsCompleted+1), "time limit exceeded")
+
+	case runnerPb.SubmissionStatusUpdate_WRONG_ANSWER:
+		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusWRONGANSWER,
+			fmt.Sprintf("Wrong answer on test case %d", updateEvent.TestsCompleted+1), "wrong answer")
+
+	default:
+		slog.Error("unexpected update event", "status", updateEvent.GetStatus())
+		return job.submission, errors.New("unexpected update event")
+	}
+}
+
+// updateSubmissionStatus is a helper function to update the submission status
+func (b *broker) updateSubmissionStatus(ctx context.Context, db storage.DBTX, submission storage.Submission,
+	status storage.SubmissionStatus, message string, logStatus string) (storage.Submission, error) {
+
+	updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, db, storage.UpdateSubmissionStatusParams{
+		ID:     submission.ID,
+		Status: status,
+		Message: pgtype.Text{
+			Valid:  true,
+			String: message,
+		},
+	})
+
+	if err != nil {
+		slog.Error("could not update submission status", "status", logStatus, "error", err)
+		return submission, fmt.Errorf("could not update submission status: %w", err)
+	}
+
+	return updatedSubmission, nil
+}
+
+// handleInternalError handles the internal error case which requires a transaction
+func (b *broker) handleInternalError(ctx context.Context, submission storage.Submission) (storage.Submission, error) {
+	tx, err := b.pool.Begin(ctx)
+	if err != nil {
+		slog.Error("could not begin update transaction", "error", err, "status", "internal error")
+		return submission, fmt.Errorf("could not begin update submission transaction: %w", err)
+	}
+
+	defer func(ctx context.Context, tx pgx.Tx) {
+		err := tx.Rollback(ctx)
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Error("could not rollback transaction")
+		}
+	}(ctx, tx)
+
+	updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, tx, storage.UpdateSubmissionStatusParams{
+		ID:     submission.ID,
+		Status: storage.SubmissionStatusINTERNALERROR,
+		Message: pgtype.Text{
+			Valid:  true,
+			String: "Internal error occurred during evaluation",
+		},
+	})
+	if err != nil {
+		slog.Error("could not update submission status", "status", "internal error", "error", err)
+		return submission, fmt.Errorf("could not update submission status: %w", err)
+	}
+
+	updatedSubmission, err = b.increaseSubmissionRetry(ctx, updatedSubmission, tx)
+	if err != nil {
+		return submission, fmt.Errorf("could not increase submission retry: %w", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return submission, fmt.Errorf("could not commit update and increase retry transaction: %w", err)
+	}
+
+	return updatedSubmission, nil
 }
 
 func (b *broker) increaseSubmissionRetry(ctx context.Context, updatedSubmission storage.Submission, tx storage.DBTX) (storage.Submission, error) {
@@ -385,8 +370,8 @@ func (b *broker) increaseSubmissionRetry(ctx context.Context, updatedSubmission 
 
 func streamToIter(
 	stream grpc.ServerStreamingClient[runnerPb.SubmissionStatusUpdate],
-) iter.Seq[*runnerPb.SubmissionStatusUpdate] {
-	return func(yield func(*runnerPb.SubmissionStatusUpdate) bool) {
+) iter.Seq2[*runnerPb.SubmissionStatusUpdate, error] {
+	return func(yield func(*runnerPb.SubmissionStatusUpdate, error) bool) {
 		for {
 			updateEvent, err := stream.Recv()
 			if err != nil {
@@ -394,10 +379,11 @@ func streamToIter(
 					return
 				}
 				slog.Error("error happened in receiving update event", "error", err)
+				yield(nil, err)
 				return
 			}
 
-			if !yield(updateEvent) {
+			if !yield(updateEvent, nil) {
 				return
 			}
 		}

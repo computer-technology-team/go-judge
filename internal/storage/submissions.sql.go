@@ -77,6 +77,7 @@ SELECT
     submissions.id, submissions.problem_id, submissions.user_id, submissions.solution_code, submissions.status, submissions.created_at, submissions.last_modified, submissions.message, submissions.retries
 FROM submissions INNER JOIN problems ON submissions.problem_id = problems.id
 WHERE submissions.user_id = $1
+ORDER BY submissions.created_at DESC
 `
 
 type GetUserSubmissionsRow struct {

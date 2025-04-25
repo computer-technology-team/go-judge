@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"strconv"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const utilVolumeName = "go-judge_go-runner-utils"
@@ -50,13 +53,14 @@ func NewCodeEvaluator(ctx context.Context) (*CodeEvaluator, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
 	}
-
 	err = pullImages(ctx, cli)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pull images: %w", err)
 	}
 
-	return &CodeEvaluator{dockerClient: cli}, nil
+	return &CodeEvaluator{
+		dockerClient: cli,
+	}, nil
 
 }
 
@@ -81,7 +85,19 @@ func pullImages(ctx context.Context, cli *client.Client) error {
 	return nil
 }
 
+func (c *CodeEvaluator) GetCpuCount(ctx context.Context) (int, error) {
+	sysInfo, err := c.dockerClient.Info(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("could not get system info from docker client: %w", err)
+	}
+
+	return sysInfo.NCPU, nil
+}
+
 func (c *CodeEvaluator) BuildCodeBinary(ctx context.Context, submissionID, code string) error {
+	if rand.IntN(3) == 0 {
+		return status.Error(codes.Internal, "random internal")
+	}
 
 	volumeName := fmt.Sprintf("go-judge-volume-%s", submissionID)
 
@@ -156,7 +172,7 @@ func (c *CodeEvaluator) waitForBuildContainer(ctx context.Context, containerID s
 			logs, _ := io.ReadAll(out)
 			return &BuildError{ExitCode: int(status.StatusCode), Logs: sanitizeUTF8(logs)}
 		}
-		return &BuildError{ExitCode: 0}
+		return nil
 	}
 	return nil
 }

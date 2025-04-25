@@ -20,7 +20,8 @@ SELECT
     problems.title AS problem_name,
     sqlc.embed(submissions)
 FROM submissions INNER JOIN problems ON submissions.problem_id = problems.id
-WHERE submissions.user_id = $1;
+WHERE submissions.user_id = $1
+ORDER BY submissions.created_at DESC;
 
 -- name: GetSubmissionForUser :one
 SELECT

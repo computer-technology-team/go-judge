@@ -1,9 +1,11 @@
 package runner
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,13 +17,24 @@ import (
 type runnerServer struct {
 	runnerPb.UnimplementedRunnerServer
 
-	codeEvaluator *CodeEvaluator
+	codeEvaluator   *CodeEvaluator
+	resourceLimiter *semaphore.Weighted
 }
 
-func NewRunnerServer(evaluator *CodeEvaluator) (runnerPb.RunnerServer, error) {
+func NewRunnerServer(ctx context.Context, runnerCnt int, evaluator *CodeEvaluator) (runnerPb.RunnerServer, error) {
+
+	cpuCnt, err := evaluator.GetCpuCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cpuAllowance := int64(max(1, (cpuCnt-2)/runnerCnt))
+
+	slog.Info("creating runner server", "cpu_allowance", cpuAllowance, "runner_cnt", runnerCnt)
 
 	return &runnerServer{
-		codeEvaluator: evaluator,
+		codeEvaluator:   evaluator,
+		resourceLimiter: semaphore.NewWeighted(cpuAllowance),
 	}, nil
 }
 
@@ -32,7 +45,19 @@ func (rs *runnerServer) ExecuteSubmission(
 	logger := slog.With("memory_limit", request.GetMemoryLimitKb(), "timelimit", request.GetTimeLimitMs(),
 		"code", request.GetCode(), "submission_id", request.GetSubmissionId())
 	logger.Info("recieved request")
-	err := stream.Send(&runnerPb.SubmissionStatusUpdate{
+
+	err := rs.resourceLimiter.Acquire(stream.Context(), 1)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			logger.Warn("failed to acquire resource in time")
+			return nil
+		}
+		logger.Error("failed to acquire resource", "error", err)
+		return status.Error(codes.Internal, "could not acquire resource")
+	}
+	defer rs.resourceLimiter.Release(1)
+
+	err = stream.Send(&runnerPb.SubmissionStatusUpdate{
 		SubmissionId:   request.GetSubmissionId(),
 		Status:         runnerPb.SubmissionStatusUpdate_RUNNING,
 		TestsCompleted: 0,

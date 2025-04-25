@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +29,12 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("could not create code evaluator: %w", err)
 	}
 
-	runnerServer, err := runner.NewRunnerServer(evaluator)
+	runnerCnt, err := getRunnerCount(cfg.RunnerClient.Address)
+	if err != nil {
+		return fmt.Errorf("could not get runnner count: %w", err)
+	}
+
+	runnerServer, err := runner.NewRunnerServer(ctx, runnerCnt, evaluator)
 	if err != nil {
 		return fmt.Errorf("could not create runner server: %w", err)
 	}
@@ -78,4 +84,15 @@ func StartServer(ctx context.Context, cfg config.Config) error {
 	}
 
 	return nil
+}
+
+func getRunnerCount(runnnerEndpoint string) (int, error) {
+	parsedUrl, err := url.Parse("tcp://" + runnnerEndpoint)
+	if err != nil {
+		return 0, fmt.Errorf("could not parse endpoint: %w", err)
+	}
+
+	host := parsedUrl.Hostname()
+	ips, err := net.LookupIP(host)
+	return len(ips), err
 }
