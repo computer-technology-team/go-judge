@@ -1,13 +1,15 @@
 {{ define "profilepage" }}
 {{ template "base" . }}
 {{ end }}
-{{ define "title" }}Profile - {{ .User.Username }}{{ end }}
+
+{{ define "title" }}Profile - {{ .Data.User.Username }}{{ end }}
 
 {{ define "head" }}
 <link rel="stylesheet" href="/static/css/profilepage.css">
 {{ end }}
 
 {{ define "content" }}
+{{ with .Data }}
     <div class="profile-container">
 
         <div class="profile-info">
@@ -37,7 +39,7 @@
                     <span class="stat-icon">📈</span>
                     <div class="stat-number">
                         {{ if gt .User.ProblemsAttempted 0 }}
-                            {{ printf "%.1f" (mul (div (float64 .User.ProblemsSolved) (float64 .User.ProblemsAttempted)) 100.0) }}%
+                            {{ mulf (divf .User.ProblemsSolved .User.ProblemsAttempted) 100.0 }}%
                         {{ else }}
                             0%
                         {{ end }}
@@ -68,7 +70,7 @@
                                 </a>
                             </td>
                             <td>
-          <span class="status-badge status-{{ .Submission.Status | lower }}">
+          <span class="status-badge status-{{ .Submission.Status | toString | lower }}">
             {{ .Submission.Status }}
           </span>
                             </td>
@@ -85,7 +87,7 @@
         </div>
 
 
-        {{ if and .User (eq .User.Superuser true) }}
+        {{ if and $.User (eq $.User.Superuser true) }}
             <div class="admin-controls fancy-box">
                 <h3 class="box-title">🛠️ Admin Controls</h3>
                 <p class="admin-status-line">Superuser Status:
@@ -105,4 +107,5 @@
             </div>
         {{ end }}
     </div>
+{{ end }}
 {{ end }}

@@ -1,6 +1,7 @@
 package submissions
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	internalcontext "github.com/computer-technology-team/go-judge/internal/context"
 	"github.com/computer-technology-team/go-judge/internal/storage"
 	"github.com/computer-technology-team/go-judge/web/templates"
+	"github.com/jackc/pgx/v5"
 )
 
 const maxFileSize = 10_000_000 // 10MB
@@ -72,16 +74,44 @@ func (s *ServicerImpl) CreateSubmission(w http.ResponseWriter, r *http.Request) 
 
 	logger = logger.With("problem_id", problemID, "user_id", user.ID)
 
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "could not begin transaction", "error", err)
+		templates.RenderError(ctx, w, "could not process submission", http.StatusInternalServerError, s.templates)
+		return
+	}
+
+	defer func(ctx context.Context, tx pgx.Tx) {
+		err := tx.Rollback(ctx)
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			logger.ErrorContext(ctx, "could not rollback transaction", "error", err)
+		}
+	}(ctx, tx)
+
 	submissionParams := storage.CreateSubmissionParams{
 		ProblemID:    int32(problemID),
 		UserID:       user.ID,
 		SolutionCode: code,
 	}
 
-	submission, err := s.querier.CreateSubmission(ctx, s.pool, submissionParams)
+	submission, err := s.querier.CreateSubmission(ctx, tx, submissionParams)
 	if err != nil {
 		logger.ErrorContext(ctx, "could not create submission", "error", err)
 		templates.RenderError(ctx, w, "could not create submission", http.StatusInternalServerError, s.templates)
+		return
+	}
+
+	err = s.querier.IncreaseUserAttempts(ctx, tx, user.ID)
+	if err != nil {
+		logger.ErrorContext(ctx, "could not increase user attempts", "error", err)
+		templates.RenderError(ctx, w, "could not process submission", http.StatusInternalServerError, s.templates)
+		return
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "could not commit transaction", "error", err)
+		templates.RenderError(ctx, w, "could not finalize submission", http.StatusInternalServerError, s.templates)
 		return
 	}
 

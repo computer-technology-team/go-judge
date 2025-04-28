@@ -23,3 +23,13 @@ UPDATE users
 SET superuser = NOT superuser
 WHERE id = $1
 RETURNING *;
+
+-- name: IncreaseUserAttempts :exec
+UPDATE users
+SET problems_attempted = problems_attempted + 1
+WHERE id = $1;
+
+-- name: IncreaseUserSolves :exec
+UPDATE users
+SET problems_solved = problems_solved + 1
+WHERE id = $1;

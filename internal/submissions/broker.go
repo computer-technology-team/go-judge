@@ -269,7 +269,7 @@ func (b *broker) handleStatusUpdate(ctx context.Context, job submissionEvaluatio
 			updateEvent.StatusMessage, "compilation error")
 
 	case runnerPb.SubmissionStatusUpdate_ACCEPTED:
-		return b.updateSubmissionStatus(ctx, b.pool, job.submission, storage.SubmissionStatusACCEPTED,
+		return b.acceptSubmission(ctx, job.submission, storage.SubmissionStatusACCEPTED,
 			fmt.Sprintf("Passed all %d test cases", updateEvent.TotalTests), "accepted")
 
 	case runnerPb.SubmissionStatusUpdate_INTERNAL_ERROR:
@@ -317,6 +317,49 @@ func (b *broker) updateSubmissionStatus(ctx context.Context, db storage.DBTX, su
 	if err != nil {
 		slog.Error("could not update submission status", "status", logStatus, "error", err)
 		return submission, fmt.Errorf("could not update submission status: %w", err)
+	}
+
+	return updatedSubmission, nil
+}
+
+func (b *broker) acceptSubmission(ctx context.Context, submission storage.Submission,
+	status storage.SubmissionStatus, message string, logStatus string) (storage.Submission, error) {
+
+	tx, err := b.pool.Begin(ctx)
+	if err != nil {
+		slog.Error("could not begin transaction", "status", logStatus, "error", err)
+		return submission, err
+	}
+	defer func(ctx context.Context, tx pgx.Tx) {
+		err := tx.Rollback(ctx)
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Error("could not rollback transaction", "error", err)
+		}
+	}(ctx, tx)
+
+	updatedSubmission, err := b.querier.UpdateSubmissionStatus(ctx, tx, storage.UpdateSubmissionStatusParams{
+		ID:     submission.ID,
+		Status: status,
+		Message: pgtype.Text{
+			Valid:  true,
+			String: message,
+		},
+	})
+	if err != nil {
+		slog.Error("could not update submission status", "status", logStatus, "error", err)
+		return submission, fmt.Errorf("could not update submission status: %w", err)
+	}
+
+	err = b.querier.IncreaseUserSolves(ctx, tx, submission.UserID)
+	if err != nil {
+		slog.Error("could not update user solves", "status", logStatus, "error", err)
+		return submission, fmt.Errorf("could not update user solves: %w", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		slog.Error("could not commit transaction", "status", logStatus, "error", err)
+		return submission, fmt.Errorf("could not commit transaction: %w", err)
 	}
 
 	return updatedSubmission, nil

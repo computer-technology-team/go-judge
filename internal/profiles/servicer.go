@@ -51,7 +51,6 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2) load their submissions (e.g. last N or all)
 	subs, err := s.querier.GetUserSubmissions(ctx, s.pool, user.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "could not get submissions", slog.String("username", username), "error", err)
@@ -64,7 +63,7 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 		Submissions []storage.GetUserSubmissionsRow
 	}{
 		User:        user,
-		Submissions: subs,
+		Submissions: subs[:min(len(subs), 5)],
 	}
 
 	err = s.templates.Render(ctx, "profilepage", w, model)
@@ -85,14 +84,14 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 	user, err := s.querier.GetUserByUsername(ctx, s.pool, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, "user not found", http.StatusNotFound)
+			templates.RenderError(ctx, w, "user not found", http.StatusNotFound, s.templates)
 
 			return
 		}
 
 		slog.ErrorContext(ctx, "could not get user from database",
 			slog.String("username", username), "error", err)
-		http.Error(w, "could not get user from storage", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not get user from storage", http.StatusInternalServerError, s.templates)
 		return
 	}
 
@@ -111,7 +110,7 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(ctx, "could not render profile",
 			slog.String("username", user.Username), "error", err)
 
-		http.Error(w, "could not render profile", http.StatusInternalServerError)
+		templates.RenderError(ctx, w, "could not render profile", http.StatusInternalServerError, s.templates)
 		return
 	}
 }
