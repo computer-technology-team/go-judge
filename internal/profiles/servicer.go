@@ -105,16 +105,5 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-<<<<<<< HEAD
-	err = s.templates.Render(ctx, "profilepage", w, updatedUser)
-	if err != nil {
-		slog.ErrorContext(ctx, "could not render profile",
-			slog.String("username", user.Username), "error", err)
-
-		templates.RenderError(ctx, w, "could not render profile", http.StatusInternalServerError, s.templates)
-		return
-	}
-=======
 	http.Redirect(w, r, "/profiles/"+username, http.StatusMovedPermanently)
->>>>>>> 60ebdc0 (fix)
 }

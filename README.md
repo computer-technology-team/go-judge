@@ -105,3 +105,14 @@ cd go-judge
 # Start the services
 docker-compose up
 ```
+
+You can run the load test using:
+
+```bash
+ go run ./scripts/loadtest/loadtest.go
+```
+
+## Load Test
+
+Load test creates a problem using a known admin and publishes it, then it concurrently creates users and submits solutions.
+Concurrency can be toggled in the go script
