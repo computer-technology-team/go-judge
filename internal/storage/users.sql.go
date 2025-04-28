@@ -101,6 +101,28 @@ func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username strin
 	return i, err
 }
 
+const increaseUserAttempts = `-- name: IncreaseUserAttempts :exec
+UPDATE users
+SET problems_attempted = problems_attempted + 1
+WHERE id = $1
+`
+
+func (q *Queries) IncreaseUserAttempts(ctx context.Context, db DBTX, id pgtype.UUID) error {
+	_, err := db.Exec(ctx, increaseUserAttempts, id)
+	return err
+}
+
+const increaseUserSolves = `-- name: IncreaseUserSolves :exec
+UPDATE users
+SET problems_solved = problems_solved + 1
+WHERE id = $1
+`
+
+func (q *Queries) IncreaseUserSolves(ctx context.Context, db DBTX, id pgtype.UUID) error {
+	_, err := db.Exec(ctx, increaseUserSolves, id)
+	return err
+}
+
 const toggleUserSuperLevel = `-- name: ToggleUserSuperLevel :one
 UPDATE users
 SET superuser = NOT superuser

@@ -26,6 +26,8 @@ type Querier interface {
 	GetUserByUsername(ctx context.Context, db DBTX, username string) (User, error)
 	GetUserProblemsSorted(ctx context.Context, db DBTX, arg GetUserProblemsSortedParams) ([]Problem, error)
 	GetUserSubmissions(ctx context.Context, db DBTX, userID pgtype.UUID) ([]GetUserSubmissionsRow, error)
+	IncreaseUserAttempts(ctx context.Context, db DBTX, id pgtype.UUID) error
+	IncreaseUserSolves(ctx context.Context, db DBTX, id pgtype.UUID) error
 	InsertProblem(ctx context.Context, db DBTX, arg InsertProblemParams) (Problem, error)
 	InsertTestCase(ctx context.Context, db DBTX, arg InsertTestCaseParams) (TestCase, error)
 	PublishProblem(ctx context.Context, db DBTX, id int32) error
