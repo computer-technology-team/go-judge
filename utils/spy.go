@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,7 +47,7 @@ func main() {
 		fmt.Printf("Error creating user output file %s: %v\n", *userOutFile, err)
 		os.Exit(3)
 	}
-	defer userOutputFile.Close()
+	// We'll close this manually later, so don't use defer here
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeLimit)*time.Millisecond)
@@ -109,16 +108,28 @@ func main() {
 		}
 	}
 
-	// Compare outputs
 	expected, err := os.ReadFile(expectedPath)
 	if err != nil {
 		fmt.Printf("Error reading expected output file %s: %v\n", expectedPath, err)
 		os.Exit(3) // Exit code 3 for internal errors (file system issues)
 	}
 
-	output, err := io.ReadAll(userOutputFile)
+	// Flush the file to ensure all data is written to disk
+	if err := userOutputFile.Sync(); err != nil {
+		fmt.Printf("Error flushing user output file: %v\n", err)
+		os.Exit(3)
+	}
+
+	// Close the file before reading it
+	if err := userOutputFile.Close(); err != nil {
+		fmt.Printf("Error closing user output file: %v\n", err)
+		os.Exit(3)
+	}
+
+	// Read the output from the file
+	output, err := os.ReadFile(userOutputPath)
 	if err != nil {
-		fmt.Printf("Error reading user output file :%v\n", err)
+		fmt.Printf("Error reading user output file: %v\n", err)
 		os.Exit(3) // Exit code 3 for internal errors (file system issues)
 	}
 

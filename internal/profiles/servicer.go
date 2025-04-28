@@ -95,7 +95,7 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := s.querier.ToggleUserSuperLevel(ctx, s.pool, user.ID)
+	_, err = s.querier.ToggleUserSuperLevel(ctx, s.pool, user.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -105,6 +105,7 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+<<<<<<< HEAD
 	err = s.templates.Render(ctx, "profilepage", w, updatedUser)
 	if err != nil {
 		slog.ErrorContext(ctx, "could not render profile",
@@ -113,4 +114,7 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 		templates.RenderError(ctx, w, "could not render profile", http.StatusInternalServerError, s.templates)
 		return
 	}
+=======
+	http.Redirect(w, r, "/profiles/"+username, http.StatusMovedPermanently)
+>>>>>>> 60ebdc0 (fix)
 }

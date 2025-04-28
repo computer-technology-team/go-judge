@@ -324,6 +324,7 @@ func (*CodeEvaluator) getStatusCode(stdout string, exitCode int) runner.Submissi
 		if strings.HasPrefix(stdout, "CORRECT") {
 			return runner.SubmissionStatusUpdate_RUNNING
 		} else {
+			slog.Info("wrong answer", "stdout", stdout)
 			return runner.SubmissionStatusUpdate_WRONG_ANSWER
 		}
 	}
