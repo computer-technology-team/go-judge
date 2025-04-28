@@ -1,7 +1,7 @@
 {{ define "profilepage" }}
 {{ template "base" . }}
 {{ end }}
-{{ define "title" }}Profile - {{ .Data.Username }}{{ end }}
+{{ define "title" }}Profile - {{ .User.Username }}{{ end }}
 
 {{ define "head" }}
 <link rel="stylesheet" href="/static/css/profilepage.css">
@@ -12,10 +12,10 @@
 
         <div class="profile-info">
             <h2 class="username">
-                {{ if .Data.Superuser }}
-                    👑 {{ .Data.Username }}
+                {{ if .User.Superuser }}
+                    👑 {{ .User.Username }}
                 {{ else }}
-                    🧑‍💻 {{ .Data.Username }}
+                    🧑‍💻 {{ .User.Username }}
                 {{ end }}
             </h2>
         </div>
@@ -25,19 +25,19 @@
             <div class="profile-stats">
                 <div class="stat-item">
                     <span class="stat-icon">🎯</span>
-                    <div class="stat-number">{{ .Data.ProblemsAttempted }}</div>
+                    <div class="stat-number">{{ .User.ProblemsAttempted }}</div>
                     <div class="stat-label">Attempted</div>
                 </div>
                 <div class="stat-item">
                     <span class="stat-icon">🏆</span>
-                    <div class="stat-number">{{ .Data.ProblemsSolved }}</div>
+                    <div class="stat-number">{{ .User.ProblemsSolved }}</div>
                     <div class="stat-label">Solved</div>
                 </div>
                 <div class="stat-item">
                     <span class="stat-icon">📈</span>
                     <div class="stat-number">
-                        {{ if gt .Data.ProblemsAttempted 0 }}
-                            {{ printf "%.1f" (mul (div (float64 .Data.ProblemsSolved) (float64 .Data.ProblemsAttempted)) 100.0) }}%
+                        {{ if gt .User.ProblemsAttempted 0 }}
+                            {{ printf "%.1f" (mul (div (float64 .User.ProblemsSolved) (float64 .User.ProblemsAttempted)) 100.0) }}%
                         {{ else }}
                             0%
                         {{ end }}
@@ -47,17 +47,55 @@
             </div>
         </div>
 
+        <div class="fancy-box">
+            <h3 class="box-title">📋 Recent Submissions</h3>
+
+            {{ if .Submissions }}
+                <table class="profile-submissions-table">
+                    <thead>
+                    <tr>
+                        <th>Problem</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{ range .Submissions }}
+                        <tr>
+                            <td>
+                                <a href="/problems/{{ .Submission.ProblemID }}">
+                                    {{ .Submission.ProblemID }} – {{ .ProblemName }}
+                                </a>
+                            </td>
+                            <td>
+          <span class="status-badge status-{{ .Submission.Status | lower }}">
+            {{ .Submission.Status }}
+          </span>
+                            </td>
+                            <td>
+                                {{ .Submission.CreatedAt.Time.Format "Jan 02, 2006" }}
+                            </td>
+                        </tr>
+                    {{ end }}
+                    </tbody>
+                </table>
+            {{ else }}
+                <p>No recent submissions.</p>
+            {{ end }}
+        </div>
+
+
         {{ if and .User (eq .User.Superuser true) }}
             <div class="admin-controls fancy-box">
                 <h3 class="box-title">🛠️ Admin Controls</h3>
                 <p class="admin-status-line">Superuser Status:
-                    <span class="{{ if .Data.Superuser }}status-enabled{{ else }}status-disabled{{ end }}">
-                {{ if .Data.Superuser }}Enabled{{ else }}Disabled{{ end }}
+                    <span class="{{ if .User.Superuser }}status-enabled{{ else }}status-disabled{{ end }}">
+                {{ if .User.Superuser }}Enabled{{ else }}Disabled{{ end }}
             </span>
                 </p>
-                <form action="/profiles/{{ .Data.Username }}/toggle-superuser" method="POST" class="admin-form">
+                <form action="/profiles/{{ .User.Username }}/toggle-superuser" method="POST" class="admin-form">
                     <button type="submit" class="btn btn-admin-centered">
-                        {{ if .Data.Superuser }}
+                        {{ if .User.Superuser }}
                             ⊖ Revoke Superuser Status
                         {{ else }}
                             ⊕ Grant Superuser Status

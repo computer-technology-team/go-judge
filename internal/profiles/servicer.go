@@ -41,7 +41,6 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 	user, err := s.querier.GetUserByUsername(ctx, s.pool, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// TODO: make this html
 			templates.RenderError(ctx, w, "user not found", http.StatusNotFound, s.templates)
 			return
 		}
@@ -52,7 +51,23 @@ func (s *servicerImpl) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.templates.Render(ctx, "profilepage", w, user)
+	// 2) load their submissions (e.g. last N or all)
+	subs, err := s.querier.GetUserSubmissions(ctx, s.pool, user.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, "could not get submissions", slog.String("username", username), "error", err)
+		templates.RenderError(ctx, w, "could not retrieve submissions", http.StatusInternalServerError, s.templates)
+		return
+	}
+
+	model := struct {
+		User        storage.User // your SQLC User type
+		Submissions []storage.GetUserSubmissionsRow
+	}{
+		User:        user,
+		Submissions: subs,
+	}
+
+	err = s.templates.Render(ctx, "profilepage", w, model)
 	if err != nil {
 		slog.ErrorContext(ctx, "could not render profile",
 			slog.String("username", username), "error", err)
@@ -70,7 +85,6 @@ func (s *servicerImpl) ToggleSuperUser(w http.ResponseWriter, r *http.Request) {
 	user, err := s.querier.GetUserByUsername(ctx, s.pool, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// TODO: make this html
 			http.Error(w, "user not found", http.StatusNotFound)
 
 			return
